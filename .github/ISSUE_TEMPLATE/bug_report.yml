@@ -1,0 +1,140 @@
+name: Bug Report
+description: Reportar um bug ou problema no sistema
+title: "[BUG] "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por reportar um bug! Por favor, preencha as informações abaixo para nos ajudar a resolver o problema.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Descrição do Bug
+      description: Descreva claramente o problema encontrado
+      placeholder: Ex. O sistema não permite fazer upload de documentos PDF...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Passos para Reproduzir
+      description: Liste os passos necessários para reproduzir o bug
+      placeholder: |
+        1. Vá para a página de documentos
+        2. Clique em 'Upload de arquivo'
+        3. Selecione um arquivo PDF
+        4. Veja o erro aparecer
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportamento Esperado
+      description: Descreva o que deveria acontecer
+      placeholder: O arquivo PDF deveria ser carregado com sucesso...
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Comportamento Atual
+      description: Descreva o que realmente acontece
+      placeholder: Uma mensagem de erro aparece dizendo...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severidade
+      description: Qual o impacto deste bug?
+      options:
+        - Baixa (inconveniente menor)
+        - Média (funcionalidade afetada)
+        - Alta (funcionalidade principal quebrada)
+        - Crítica (sistema inutilizável)
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Versão do CERES
+      description: Qual versão do sistema você está usando?
+      placeholder: Ex. v1.0.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Navegador
+      description: Qual navegador você está usando?
+      options:
+        - Chrome
+        - Firefox
+        - Safari
+        - Edge
+        - Outro
+    validations:
+      required: true
+
+  - type: input
+    id: browser-version
+    attributes:
+      label: Versão do Navegador
+      description: Qual versão do navegador?
+      placeholder: Ex. Chrome 96.0.4664.110
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Sistema Operacional
+      description: Qual sistema operacional você está usando?
+      options:
+        - Windows 10
+        - Windows 11
+        - macOS
+        - Linux (Ubuntu)
+        - Linux (outro)
+        - Outro
+    validations:
+      required: true
+
+  - type: textarea
+    id: console-logs
+    attributes:
+      label: Logs do Console
+      description: Se aplicável, cole os logs do console do navegador (F12 > Console)
+      render: shell
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Se aplicável, adicione screenshots para ajudar a explicar o problema
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Informações Adicionais
+      description: Qualquer outra informação que possa ser útil
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Checklist
+      description: Por favor, confirme que você verificou os itens abaixo
+      options:
+        - label: Eu verifiquei que este bug não foi reportado anteriormente
+          required: true
+        - label: Eu testei na versão mais recente do sistema
+          required: true
+        - label: Eu incluí todas as informações necessárias
+          required: true
+
