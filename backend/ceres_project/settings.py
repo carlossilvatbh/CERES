@@ -285,15 +285,17 @@ LOGGING = {
     },
 }
 
-# Security settings for production
+# Security settings for production - Railway optimized
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_HSTS_SECONDS = 31536000
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+    # HSTS disabled for Railway - Railway handles HTTPS at edge
+    # SECURE_HSTS_SECONDS = 31536000
+    # SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    # SECURE_HSTS_PRELOAD = True
+    # Cookies secure disabled for Railway internal HTTP
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
     # SECURE_SSL_REDIRECT disabled for Railway - Railway handles HTTPS at edge
     SECURE_SSL_REDIRECT = False
 
