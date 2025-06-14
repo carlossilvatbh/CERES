@@ -22,9 +22,10 @@
 - [Installation](#installation)
 - [Usage](#usage)
 - [API Documentation](#api-documentation)
+- [Testing Guide](docs/testing-guide.md)
 - [Contributing](#contributing)
 - [License](#license)
-- [Contact](#contact)
+- [Support](#support)
 
 ## 🎯 About the Project
 
