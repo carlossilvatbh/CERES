@@ -5,7 +5,8 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from unittest.mock import patch
 
 from customer_enrollment.models import Customer, EnrollmentSession
-from document_processing.models import CustomerDocument
+from document_processing.models import CustomerDocument, DocumentProcessingTask
+from document_processing.services import DocumentProcessingService
 import uuid
 
 
@@ -82,3 +83,50 @@ class DocumentListPaginationTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["count"], 25)
         self.assertEqual(len(response.data["results"]["data"]), 20)
+
+
+class OCRProcessingTests(TestCase):
+    """Tests for the OCR processing service"""
+
+    def test_ocr_data_saved_and_text_block_count(self):
+        """Document OCR results should be stored correctly"""
+        # Create customer using Django ORM instead of raw SQL
+        from django.contrib.auth.models import User
+        from customer_enrollment.models import Customer
+        
+        user = User.objects.create_user(username="testuser", password="pass")
+        customer = Customer.objects.create(created_by=user)
+
+        test_file = SimpleUploadedFile("test.pdf", b"dummy", content_type="application/pdf")
+
+        with patch("document_processing.models.document_upload_path", lambda i, f: f"docs/{f}"):
+            document = CustomerDocument.objects.create(
+                customer=customer,
+                document_type="passport",
+                file=test_file,
+            )
+
+        task = DocumentProcessingTask.objects.create(document=document, task_type="ocr")
+
+        mocked_result = {
+            "raw_text": "hello world from ocr",
+            "structured_data": {"name": "John Doe"},
+            "confidence": 0.9,
+            "processing_time": 0.5,
+        }
+
+        with patch("document_processing.services.OCRService.extract_text", return_value=mocked_result), \
+             patch("document_processing.services.DocumentProcessingService.validate_document", return_value=None):
+            service = DocumentProcessingService()
+            service._process_ocr(document, task)
+
+        document.refresh_from_db()
+        task.refresh_from_db()
+
+        self.assertIsInstance(document.ocr_data, dict)
+        self.assertEqual(document.ocr_data, {"raw_text": mocked_result["raw_text"]})
+        self.assertEqual(
+            task.result_data.get("text_blocks_found"),
+            len(mocked_result["raw_text"].split()),
+        )
+
