@@ -6,9 +6,12 @@ from unittest.mock import patch
 
 from customer_enrollment.models import Customer, EnrollmentSession
 from document_processing.models import CustomerDocument
+import uuid
 
 
-@override_settings(MIGRATION_MODULES={"customer_enrollment": None, "document_processing": None})
+@override_settings(
+    MIGRATION_MODULES={"customer_enrollment": None, "document_processing": None}
+)
 class DocumentUploadSessionTest(TestCase):
     """Tests for document upload during an enrollment session"""
 
@@ -22,7 +25,9 @@ class DocumentUploadSessionTest(TestCase):
             status="personal_data_completed",
         )
 
-    @patch("document_processing.views.DocumentProcessingService.start_document_processing")
+    @patch(
+        "document_processing.views.DocumentProcessingService.start_document_processing"
+    )
     def test_upload_updates_enrollment_session(self, mock_start):
         file_obj = SimpleUploadedFile(
             "test.pdf", b"%PDF-1.4 test", content_type="application/pdf"
@@ -43,3 +48,37 @@ class DocumentUploadSessionTest(TestCase):
         self.assertEqual(self.session.completion_percentage, 75)
         mock_start.assert_called_once()
         self.assertEqual(CustomerDocument.objects.count(), 1)
+
+
+@override_settings(
+    MIGRATION_MODULES={"customer_enrollment": None, "document_processing": None}
+)
+class DocumentListPaginationTest(TestCase):
+    """Tests for DocumentViewSet list pagination"""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="tester2", password="pass")
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        self.customer = Customer.objects.create(created_by=self.user)
+
+        for i in range(25):
+            CustomerDocument.objects.create(
+                customer=self.customer,
+                document_type="passport",
+                file=SimpleUploadedFile(
+                    f"file{i}.pdf", b"data", content_type="application/pdf"
+                ),
+                file_name=f"file{i}.pdf",
+                file_size=4,
+                file_hash=str(uuid.uuid4()),
+                mime_type="application/pdf",
+            )
+
+    def test_list_paginated_response(self):
+        url = f"/api/v1/documents/?customer_id={self.customer.id}"
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 25)
+        self.assertEqual(len(response.data["results"]["data"]), 20)
