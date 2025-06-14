@@ -66,7 +66,7 @@ export const AuthProvider = ({ children }) => {
       } else {
         return { success: false, error: 'Credenciais inválidas' }
       }
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Erro de rede' }
     }
   }
