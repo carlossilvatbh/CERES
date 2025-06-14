@@ -5,15 +5,17 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
 
-def success_response(data=None, message="Success", status_code=status.HTTP_200_OK):
+def success_response(data=None, message="Success", status_code=status.HTTP_200_OK, meta=None):
     """
     Standard success response format
     """
     response_data = {
         "success": True,
         "message": message,
-        "data": data
+        "data": data,
     }
+    if meta is not None:
+        response_data["meta"] = meta
     return Response(response_data, status=status_code)
 
 def error_response(message="Error", errors=None, status_code=status.HTTP_400_BAD_REQUEST):
