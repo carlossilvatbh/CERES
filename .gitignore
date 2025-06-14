@@ -276,6 +276,8 @@ logs
 media/
 uploads/
 static/
+!backend/static/
+!backend/static/.gitkeep
 
 # Backup files
 *.bak
