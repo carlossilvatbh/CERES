@@ -90,22 +90,18 @@ class OCRProcessingTests(TestCase):
 
     def test_ocr_data_saved_and_text_block_count(self):
         """Document OCR results should be stored correctly"""
-        # Insert a minimal customer record directly to match migration schema
-        from django.db import connection
-        import uuid
-        customer_id = uuid.uuid4().hex
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "INSERT INTO customers (id, external_id, status, risk_score, risk_level, created_at, updated_at) "
-                "VALUES (%s, %s, 'pending', 0, 'unknown', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-                [customer_id, None],
-            )
+        # Create customer using Django ORM instead of raw SQL
+        from django.contrib.auth.models import User
+        from customer_enrollment.models import Customer
+        
+        user = User.objects.create_user(username="testuser", password="pass")
+        customer = Customer.objects.create(created_by=user)
 
         test_file = SimpleUploadedFile("test.pdf", b"dummy", content_type="application/pdf")
 
         with patch("document_processing.models.document_upload_path", lambda i, f: f"docs/{f}"):
             document = CustomerDocument.objects.create(
-                customer_id=customer_id,
+                customer=customer,
                 document_type="passport",
                 file=test_file,
             )
