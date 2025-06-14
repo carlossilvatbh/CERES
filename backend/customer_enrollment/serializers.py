@@ -2,131 +2,126 @@
 Customer Enrollment Serializers
 """
 from rest_framework import serializers
-from .models import Customer, CustomerPersonalData, CustomerContactInfo, EnrollmentSession
+from django.contrib.auth.models import User
+from .models import Customer, CustomerAddress, CustomerDocument, UltimateBeneficialOwner
 
-class CustomerPersonalDataSerializer(serializers.ModelSerializer):
-    """
-    Serializer for customer personal data
-    """
+class CustomerAddressSerializer(serializers.ModelSerializer):
+    """Serializer for customer addresses"""
+    
     class Meta:
-        model = CustomerPersonalData
+        model = CustomerAddress
         fields = [
-            'first_name', 'middle_name', 'last_name', 'full_name',
-            'date_of_birth', 'place_of_birth', 'nationality', 'gender',
-            'marital_status', 'occupation', 'employer', 'annual_income',
-            'source_of_wealth', 'tax_id', 'tax_country'
+            'id', 'address_type', 'street_address_1', 'street_address_2',
+            'city', 'state_province', 'postal_code', 'country',
+            'is_verified', 'verified_date', 'created_at', 'updated_at'
         ]
-        extra_kwargs = {
-            'full_name': {'read_only': True},
-        }
+        read_only_fields = ['id', 'is_verified', 'verified_date', 'created_at', 'updated_at']
 
-class CustomerContactInfoSerializer(serializers.ModelSerializer):
-    """
-    Serializer for customer contact information
-    """
+class CustomerDocumentSerializer(serializers.ModelSerializer):
+    """Serializer for customer documents"""
+    
     class Meta:
-        model = CustomerContactInfo
+        model = CustomerDocument
         fields = [
-            'address_line1', 'address_line2', 'city', 'state_province',
-            'postal_code', 'country', 'phone_primary', 'phone_secondary',
-            'email_primary', 'email_secondary'
+            'id', 'document_type', 'status', 'file_name', 'file_path',
+            'file_size', 'document_number', 'issue_date', 'expiry_date',
+            'issuing_authority', 'issuing_country', 'ocr_text', 'ocr_confidence',
+            'authenticity_score', 'processing_notes', 'uploaded_at', 'processed_at'
         ]
+        read_only_fields = [
+            'id', 'status', 'file_size', 'ocr_text', 'ocr_confidence',
+            'authenticity_score', 'processing_notes', 'uploaded_at', 'processed_at'
+        ]
+
+class UltimateBeneficialOwnerSerializer(serializers.ModelSerializer):
+    """Serializer for Ultimate Beneficial Owners"""
+    
+    class Meta:
+        model = UltimateBeneficialOwner
+        fields = [
+            'id', 'first_name', 'last_name', 'date_of_birth', 'nationality',
+            'ownership_percentage', 'control_type', 'address', 'country',
+            'is_pep', 'pep_details', 'sanctions_match', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'sanctions_match', 'created_at', 'updated_at']
 
 class CustomerSerializer(serializers.ModelSerializer):
-    """
-    Main customer serializer with nested personal data and contact info
-    """
-    personal_data = CustomerPersonalDataSerializer(read_only=True)
-    contact_info = CustomerContactInfoSerializer(read_only=True)
+    """Main customer serializer with nested relationships"""
+    
+    addresses = CustomerAddressSerializer(many=True, read_only=True)
+    documents = CustomerDocumentSerializer(many=True, read_only=True, source='enrollment_documents')
+    beneficial_owners = UltimateBeneficialOwnerSerializer(many=True, read_only=True)
+    full_name = serializers.CharField(read_only=True)
+    display_name = serializers.CharField(read_only=True)
     
     class Meta:
         model = Customer
         fields = [
-            'id', 'external_id', 'status', 'risk_score', 'risk_level',
-            'created_at', 'updated_at', 'personal_data', 'contact_info'
-        ]
-        read_only_fields = ['id', 'risk_score', 'risk_level', 'created_at', 'updated_at']
-
-class EnrollmentSessionSerializer(serializers.ModelSerializer):
-    """
-    Serializer for enrollment sessions
-    """
-    customer = CustomerSerializer(read_only=True)
-    
-    class Meta:
-        model = EnrollmentSession
-        fields = [
-            'id', 'customer', 'status', 'current_step', 'completion_percentage',
-            'started_at', 'last_activity_at', 'completed_at', 'session_data'
+            'id', 'customer_type', 'status', 'first_name', 'middle_name', 'last_name',
+            'date_of_birth', 'place_of_birth', 'gender', 'entity_name', 'entity_type',
+            'incorporation_date', 'incorporation_country', 'nationality', 'tax_identifier',
+            'email', 'phone', 'risk_score', 'risk_level', 'last_risk_assessment',
+            'pep_status', 'sanctions_match', 'adverse_media', 'created_at', 'updated_at',
+            'last_screening_date', 'metadata', 'full_name', 'display_name',
+            'addresses', 'documents', 'beneficial_owners'
         ]
         read_only_fields = [
-            'id', 'started_at', 'last_activity_at', 'completed_at'
+            'id', 'risk_score', 'risk_level', 'last_risk_assessment',
+            'pep_status', 'sanctions_match', 'adverse_media',
+            'created_at', 'updated_at', 'last_screening_date'
         ]
-
-class EnrollmentStartSerializer(serializers.Serializer):
-    """
-    Serializer for starting a new enrollment
-    """
-    email = serializers.EmailField(required=False)
-    phone = serializers.CharField(max_length=50, required=False)
     
     def validate(self, data):
-        if not data.get('email') and not data.get('phone'):
-            raise serializers.ValidationError(
-                "Either email or phone number is required to start enrollment."
-            )
+        """Validate customer data based on customer type"""
+        customer_type = data.get('customer_type', 'individual')
+        
+        if customer_type == 'individual':
+            if not data.get('first_name') or not data.get('last_name'):
+                raise serializers.ValidationError(
+                    "First name and last name are required for individuals"
+                )
+        elif customer_type == 'entity':
+            if not data.get('entity_name'):
+                raise serializers.ValidationError(
+                    "Entity name is required for legal entities"
+                )
+        
         return data
 
-class PersonalDataUpdateSerializer(serializers.ModelSerializer):
-    """
-    Serializer for updating personal data during enrollment
-    """
-    class Meta:
-        model = CustomerPersonalData
-        fields = [
-            'first_name', 'middle_name', 'last_name',
-            'date_of_birth', 'place_of_birth', 'nationality', 'gender',
-            'marital_status', 'occupation', 'employer', 'annual_income',
-            'source_of_wealth', 'tax_id', 'tax_country'
-        ]
+class CustomerCreateSerializer(serializers.ModelSerializer):
+    """Simplified serializer for customer creation"""
     
-    def validate_date_of_birth(self, value):
-        """Validate that the person is at least 18 years old"""
-        if value:
-            from datetime import date
-            today = date.today()
-            age = today.year - value.year - ((today.month, today.day) < (value.month, value.day))
-            if age < 18:
-                raise serializers.ValidationError("Customer must be at least 18 years old.")
-        return value
-
-class ContactInfoUpdateSerializer(serializers.ModelSerializer):
-    """
-    Serializer for updating contact information during enrollment
-    """
     class Meta:
-        model = CustomerContactInfo
+        model = Customer
         fields = [
-            'address_line1', 'address_line2', 'city', 'state_province',
-            'postal_code', 'country', 'phone_primary', 'phone_secondary',
-            'email_primary', 'email_secondary'
+            'customer_type', 'first_name', 'middle_name', 'last_name',
+            'date_of_birth', 'place_of_birth', 'gender', 'entity_name',
+            'entity_type', 'incorporation_date', 'incorporation_country',
+            'nationality', 'tax_identifier', 'email', 'phone', 'metadata'
         ]
 
-class EnrollmentSubmitSerializer(serializers.Serializer):
-    """
-    Serializer for submitting enrollment
-    """
-    terms_accepted = serializers.BooleanField(required=True)
-    privacy_policy_accepted = serializers.BooleanField(required=True)
-    marketing_consent = serializers.BooleanField(required=False, default=False)
+class CustomerUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for customer updates"""
     
-    def validate_terms_accepted(self, value):
-        if not value:
-            raise serializers.ValidationError("Terms and conditions must be accepted.")
-        return value
+    class Meta:
+        model = Customer
+        fields = [
+            'first_name', 'middle_name', 'last_name', 'date_of_birth',
+            'place_of_birth', 'gender', 'entity_name', 'entity_type',
+            'incorporation_date', 'incorporation_country', 'nationality',
+            'tax_identifier', 'email', 'phone', 'metadata'
+        ]
+
+class CustomerListSerializer(serializers.ModelSerializer):
+    """Simplified serializer for customer lists"""
     
-    def validate_privacy_policy_accepted(self, value):
-        if not value:
-            raise serializers.ValidationError("Privacy policy must be accepted.")
-        return value
+    full_name = serializers.CharField(read_only=True)
+    display_name = serializers.CharField(read_only=True)
+    
+    class Meta:
+        model = Customer
+        fields = [
+            'id', 'customer_type', 'status', 'full_name', 'display_name',
+            'entity_name', 'risk_level', 'created_at', 'updated_at'
+        ]
 

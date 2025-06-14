@@ -9,107 +9,122 @@
   [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org/)
   [![Node.js](https://img.shields.io/badge/Node.js-20.0+-green.svg)](https://nodejs.org/)
   
-  **Sistema de Compliance e Avaliação de Risco para Instituições Financeiras**
+  **Comprehensive KYC and Compliance System for Financial Institutions**
   
-  [🚀 Demo Live](https://jgngsogp.manus.space) | [📖 Documentação](docs/) | [🐛 Issues](https://github.com/seu-usuario/ceres/issues) | [💬 Discussões](https://github.com/seu-usuario/ceres/discussions)
+  [🚀 Demo Live](https://jgngsogp.manus.space) | [📖 Documentation](docs/) | [🐛 Issues](https://github.com/carlossilvatbh/CERES/issues) | [💬 Discussions](https://github.com/carlossilvatbh/CERES/discussions)
 </div>
 
-## 📋 Índice
+## 📋 Table of Contents
 
-- [Sobre o Projeto](#sobre-o-projeto)
-- [Funcionalidades](#funcionalidades)
-- [Tecnologias](#tecnologias)
-- [Instalação](#instalação)
-- [Uso](#uso)
-- [Documentação](#documentação)
-- [Contribuição](#contribuição)
-- [Licença](#licença)
-- [Contato](#contato)
+- [About the Project](#about-the-project)
+- [Features](#features)
+- [Technologies](#technologies)
+- [Installation](#installation)
+- [Usage](#usage)
+- [API Documentation](#api-documentation)
+- [Contributing](#contributing)
+- [License](#license)
+- [Contact](#contact)
 
-## 🎯 Sobre o Projeto
+## 🎯 About the Project
 
-O CERES é um sistema completo de compliance e avaliação de risco desenvolvido especificamente para instituições financeiras. Oferece funcionalidades avançadas de KYC (Know Your Customer), screening de sanções, processamento de documentos e geração de relatórios de compliance.
+CERES is a comprehensive compliance and risk assessment system designed specifically for financial institutions. It provides advanced KYC (Know Your Customer) capabilities, sanctions screening, document processing, and compliance reporting with support for international regulations.
 
-### ✨ Principais Características
+### ✨ Key Features
 
-- **🔍 Screening Automatizado**: Verificação contra 20+ fontes de dados abertas (OFAC, UN, EU, etc.)
-- **📄 Processamento de Documentos**: OCR avançado e análise forense de autenticidade
-- **📊 Dashboard Inteligente**: Métricas em tempo real e visualizações interativas
-- **🛡️ Compliance Total**: Conformidade com GDPR, LGPD e regulamentações FATF
-- **🚀 Arquitetura Moderna**: Microserviços escaláveis com React + Django
+- **🔍 Automated Screening**: Verification against 20+ international data sources (OFAC, UN, EU, etc.)
+- **📄 Document Processing**: Advanced OCR and forensic document analysis
+- **📊 Intelligent Dashboard**: Real-time metrics and interactive visualizations
+- **🛡️ Full Compliance**: GDPR, FATF, and regional banking regulations compliance
+- **🚀 Modern Architecture**: Scalable microservices with React + Django
+- **🌍 International Ready**: Multi-language support (English/Portuguese) with i18n infrastructure
 
-## 🚀 Funcionalidades
+## 🚀 Features
 
-### 👥 Gestão de Clientes
-- ✅ Cadastro multi-step com validação em tempo real
-- ✅ Gestão de dados pessoais e documentos
-- ✅ Histórico completo de interações
-- ✅ Classificação automática de risco
+### 👥 Customer Management
+- ✅ Multi-step registration with real-time validation
+- ✅ Personal and corporate entity data management
+- ✅ Complete interaction history
+- ✅ Automated risk classification
+- ✅ Ultimate Beneficial Ownership (UBO) tracking
 
-### 🔍 Screening de Sanções
-- ✅ Verificação automática contra listas restritivas globais
-- ✅ Detecção de PEP (Pessoas Politicamente Expostas)
-- ✅ Monitoramento contínuo e alertas em tempo real
-- ✅ Configuração flexível de fontes de dados
+### 🔍 Sanctions Screening
+- ✅ Automatic verification against global restrictive lists
+- ✅ PEP (Politically Exposed Persons) detection
+- ✅ Continuous monitoring and real-time alerts
+- ✅ Flexible data source configuration
+- ✅ Advanced fuzzy matching and transliteration
 
-### 📄 Processamento de Documentos
-- ✅ Upload com drag & drop
-- ✅ OCR com Tesseract para extração de texto
-- ✅ Análise forense de autenticidade
-- ✅ Suporte para PDF, JPG, PNG (até 10MB)
+### 📄 Document Processing
+- ✅ Drag & drop upload interface
+- ✅ OCR with high accuracy (95%+)
+- ✅ Forensic authenticity analysis
+- ✅ Support for PDF, JPG, PNG (up to 10MB)
+- ✅ Automated document classification
 
-### 📊 Relatórios e Analytics
-- ✅ Dashboard com métricas em tempo real
-- ✅ Geração automática de relatórios de compliance
-- ✅ Gráficos interativos e visualizações
-- ✅ Exportação em PDF, Excel e CSV
+### 📊 Reports and Analytics
+- ✅ Real-time dashboard with metrics
+- ✅ Automated compliance report generation
+- ✅ Interactive charts and visualizations
+- ✅ Export to PDF, Excel, and CSV
+- ✅ Regulatory reports (SAR, CTR, STR)
 
-### 🛡️ Segurança e Compliance
-- ✅ Autenticação JWT com refresh tokens
-- ✅ Criptografia AES-256 para dados sensíveis
-- ✅ Auditoria imutável de todas as operações
-- ✅ Conformidade GDPR/LGPD
+### 🛡️ Security and Compliance
+- ✅ JWT authentication with refresh tokens
+- ✅ AES-256 encryption for sensitive data
+- ✅ Immutable audit trail for all operations
+- ✅ GDPR/FATF compliance
+- ✅ Role-based access control (RBAC)
 
-## 🛠️ Tecnologias
+### 🌍 International Support
+- ✅ Multi-language interface (English/Portuguese)
+- ✅ International document types support
+- ✅ Global sanctions lists integration
+- ✅ Multi-jurisdiction regulatory compliance
+- ✅ Currency and date format localization
+
+## 🛠️ Technologies
 
 ### Backend
-- **Django 5.0+** - Framework web Python
-- **Django REST Framework** - APIs REST
-- **PostgreSQL** - Banco de dados principal
-- **Redis** - Cache e sessões
-- **Celery** - Processamento assíncrono
-- **JWT** - Autenticação
+- **Django 5.0+** - Python web framework
+- **Django REST Framework** - REST APIs
+- **PostgreSQL** - Primary database
+- **Redis** - Cache and sessions
+- **Celery** - Asynchronous processing
+- **JWT** - Authentication
+- **OpenAPI 3.1** - API documentation
 
 ### Frontend
-- **React 18+** - Interface do usuário
-- **Vite** - Build tool e dev server
-- **Tailwind CSS** - Framework CSS
-- **Lucide React** - Ícones
-- **React Router** - Roteamento
+- **React 18+** - User interface
+- **Vite** - Build tool and dev server
+- **Tailwind CSS** - CSS framework
+- **React i18next** - Internationalization
+- **Lucide React** - Icons
+- **React Router** - Routing
 
-### Infraestrutura
-- **Docker** - Containerização
-- **Nginx** - Proxy reverso
-- **Gunicorn** - Servidor WSGI
+### Infrastructure
+- **Docker** - Containerization
+- **Nginx** - Reverse proxy
+- **Gunicorn** - WSGI server
 - **GitHub Actions** - CI/CD
 
-### Fontes de Dados Integradas
+### Integrated Data Sources
 - **OFAC** (Office of Foreign Assets Control)
-- **UN Consolidated List** (Nações Unidas)
-- **EU Financial Sanctions** (União Europeia)
-- **UK OFSI** (Reino Unido)
-- **Banco Central BR** (Brasil)
-- **OpenSanctions** (PEP e sanções)
-- **WikiData SPARQL** (Dados estruturados)
-- **OpenCorporates** (Dados corporativos)
+- **UN Consolidated List** (United Nations)
+- **EU Financial Sanctions** (European Union)
+- **UK OFSI** (United Kingdom)
+- **Central Bank BR** (Brazil)
+- **OpenSanctions** (PEP and sanctions)
+- **WikiData SPARQL** (Structured data)
+- **OpenCorporates** (Corporate data)
 - **GLEIF LEI** (Legal Entity Identifier)
 - **SEC EDGAR** (Securities and Exchange Commission)
-- **Companies House UK** (Registro de empresas UK)
-- **E mais 10+ fontes adicionais**
+- **Companies House UK** (UK company registry)
+- **Plus 10+ additional sources**
 
-## 🚀 Instalação
+## 🚀 Installation
 
-### Pré-requisitos
+### Prerequisites
 
 - Python 3.11+
 - Node.js 20.0+
@@ -117,37 +132,37 @@ O CERES é um sistema completo de compliance e avaliação de risco desenvolvido
 - Redis 6.0+
 - Git
 
-### 1. Clone o Repositório
+### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/seu-usuario/ceres.git
-cd ceres
+git clone https://github.com/carlossilvatbh/CERES.git
+cd CERES
 ```
 
-### 2. Configuração do Backend
+### 2. Backend Setup
 
 ```bash
 cd backend
 python -m venv venv
 source venv/bin/activate  # Linux/Mac
-# ou
+# or
 venv\Scripts\activate     # Windows
 
 pip install -r requirements.txt
 ```
 
-### 3. Configuração do Banco de Dados
+### 3. Database Configuration
 
 ```bash
-# Crie um banco PostgreSQL
+# Create a PostgreSQL database
 createdb ceres_db
 
-# Configure as variáveis de ambiente
+# Configure environment variables
 cp .env.example .env
-# Edite o arquivo .env com suas configurações
+# Edit the .env file with your configurations
 ```
 
-### 4. Migrações e Dados Iniciais
+### 4. Migrations and Initial Data
 
 ```bash
 python manage.py migrate
@@ -155,14 +170,14 @@ python manage.py createsuperuser
 python manage.py loaddata fixtures/initial_data.json
 ```
 
-### 5. Configuração do Frontend
+### 5. Frontend Setup
 
 ```bash
 cd ../frontend
 npm install
 ```
 
-### 6. Executar o Sistema
+### 6. Run the System
 
 #### Backend (Terminal 1)
 ```bash
@@ -187,109 +202,116 @@ celery -A ceres_project worker -l info
 redis-server
 ```
 
-### 7. Acesso ao Sistema
+### 7. Access the System
 
 - **Frontend**: http://localhost:5173
 - **Backend API**: http://localhost:8000
-- **Admin Django**: http://localhost:8000/admin
+- **API Documentation**: http://localhost:8000/api/docs/
+- **Django Admin**: http://localhost:8000/admin
 
-**Credenciais de demonstração:**
-- Usuário: `admin`
-- Senha: `admin123`
+**Demo credentials:**
+- Username: `admin`
+- Password: `admin123`
 
-## 📖 Uso
+## 📖 Usage
 
-### Cadastro de Cliente
+### Customer Registration
 
-1. Acesse "Cadastro de Clientes" no menu lateral
-2. Preencha os dados pessoais (Etapa 1)
-3. Adicione informações de contato (Etapa 2)
-4. Faça upload dos documentos (Etapa 3)
-5. Revise e confirme (Etapa 4)
+1. Access "Customer Management" in the sidebar
+2. Fill personal information (Step 1)
+3. Add contact information (Step 2)
+4. Upload documents (Step 3)
+5. Review and confirm (Step 4)
 
-### Screening de Sanções
+### Sanctions Screening
 
-1. Vá para "Screening" no menu
-2. Clique em "Novo Screening Individual" ou "Novo Screening Empresa"
-3. Preencha os dados para verificação
-4. Aguarde o processamento automático
-5. Analise os resultados e alertas gerados
+1. Go to "Screening" in the menu
+2. Click "New Individual Screening" or "New Entity Screening"
+3. Fill the verification data
+4. Wait for automatic processing
+5. Analyze results and generated alerts
 
-### Processamento de Documentos
+### Document Processing
 
-1. Acesse "Documentos"
-2. Arraste arquivos para a área de upload ou clique em "Selecionar Arquivos"
-3. Aguarde o processamento OCR e análise forense
-4. Visualize os resultados na lista de documentos
+1. Access "Documents"
+2. Drag files to upload area or click "Select Files"
+3. Wait for OCR processing and forensic analysis
+4. View results in the document list
 
-### Geração de Relatórios
+### Report Generation
 
-1. Vá para "Relatórios"
-2. Configure o tipo, período e formato desejado
-3. Clique em "Gerar Relatório"
-4. Faça download quando estiver pronto
+1. Go to "Reports"
+2. Configure type, period, and desired format
+3. Click "Generate Report"
+4. Download when ready
 
-## 📚 Documentação
+## 📚 API Documentation
 
-- [📖 Manual do Usuário](docs/user-manual.md)
-- [🔧 Guia de Instalação](docs/installation-guide.md)
-- [🏗️ Arquitetura do Sistema](docs/architecture.md)
-- [🔌 Documentação da API](docs/api-documentation.md)
-- [🛡️ Guia de Segurança](docs/security-guide.md)
-- [🚀 Guia de Deploy](docs/deployment-guide.md)
-- [🧪 Guia de Testes](docs/testing-guide.md)
+- [📖 User Manual](docs/user-manual.md)
+- [🔧 Installation Guide](docs/installation-guide.md)
+- [🏗️ System Architecture](docs/architecture.md)
+- [🔌 API Documentation](docs/api-documentation.md)
+- [🛡️ Security Guide](docs/security-guide.md)
+- [🚀 Deployment Guide](docs/deployment-guide.md)
+- [🧪 Testing Guide](docs/testing-guide.md)
 - [🔄 Changelog](CHANGELOG.md)
 
-## 🤝 Contribuição
+### Interactive API Documentation
 
-Contribuições são muito bem-vindas! Veja nosso [Guia de Contribuição](CONTRIBUTING.md) para detalhes sobre:
+- **Swagger UI**: http://localhost:8000/api/docs/
+- **ReDoc**: http://localhost:8000/api/redoc/
+- **OpenAPI Schema**: http://localhost:8000/api/schema/
 
-- Como reportar bugs
-- Como sugerir melhorias
-- Processo de desenvolvimento
-- Padrões de código
-- Como submeter pull requests
+## 🤝 Contributing
 
-### Desenvolvimento Local
+Contributions are very welcome! See our [Contributing Guide](CONTRIBUTING.md) for details on:
 
-1. Fork o projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
+- How to report bugs
+- How to suggest improvements
+- Development process
+- Code standards
+- How to submit pull requests
 
-## 📄 Licença
+### Local Development
 
-Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE](LICENSE) para detalhes.
+1. Fork the project
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-## 👥 Equipe
+## 📄 License
 
-- **Product Owner** - Supervisão geral do projeto
-- **Backend Team** - Desenvolvimento Django/DRF
-- **Frontend Team** - Desenvolvimento React
-- **QA Team** - Testes e qualidade
-- **DevOps Team** - Infraestrutura e deploy
-- **CTO** - Revisão técnica e arquitetura
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🆘 Suporte
+## 👥 Team
 
-- 📧 Email: suporte@ceres-system.com
-- 💬 [Discussões no GitHub](https://github.com/seu-usuario/ceres/discussions)
-- 🐛 [Reportar Bug](https://github.com/seu-usuario/ceres/issues/new?template=bug_report.md)
-- ✨ [Solicitar Feature](https://github.com/seu-usuario/ceres/issues/new?template=feature_request.md)
+- **Product Owner** - Overall project supervision
+- **Backend Team** - Django/DRF development
+- **Frontend Team** - React development
+- **QA Team** - Testing and quality
+- **DevOps Team** - Infrastructure and deployment
+- **CTO** - Technical review and architecture
 
-## 🙏 Agradecimentos
+## 🆘 Support
 
-- [OpenSanctions](https://opensanctions.org/) - Dados de sanções abertas
-- [OFAC](https://ofac.treasury.gov/) - Lista de sanções dos EUA
-- [UN Security Council](https://www.un.org/securitycouncil/) - Listas da ONU
-- [EU Sanctions Map](https://sanctionsmap.eu/) - Sanções da União Europeia
-- Comunidade open source por ferramentas e bibliotecas
+- 📧 Email: support@ceres-system.com
+- 💬 [GitHub Discussions](https://github.com/carlossilvatbh/CERES/discussions)
+- 🐛 [Report Bug](https://github.com/carlossilvatbh/CERES/issues/new?template=bug_report.md)
+- ✨ [Request Feature](https://github.com/carlossilvatbh/CERES/issues/new?template=feature_request.md)
+
+## 🙏 Acknowledgments
+
+- [OpenSanctions](https://opensanctions.org/) - Open sanctions data
+- [OFAC](https://ofac.treasury.gov/) - US sanctions list
+- [UN Security Council](https://www.un.org/securitycouncil/) - UN lists
+- [EU Sanctions Map](https://sanctionsmap.eu/) - European Union sanctions
+- Open source community for tools and libraries
 
 ---
 
 <div align="center">
-  <p>Feito com ❤️ pela equipe CERES</p>
-  <p>© 2025 CERES. Sistema de Compliance e Avaliação de Risco.</p>
+  <p>Made with ❤️ by the CERES team</p>
+  <p>© 2025 CERES. Customer Enrollment and Risk Evaluation System.</p>
 </div>
 

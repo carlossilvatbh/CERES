@@ -4,17 +4,20 @@ Customer Enrollment Views
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db import transaction
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter, OrderingFilter
 import logging
 
-from .models import Customer, CustomerPersonalData, CustomerContactInfo, EnrollmentSession
+from .models import Customer, CustomerAddress, CustomerDocument, UltimateBeneficialOwner
 from .serializers import (
-    CustomerSerializer, EnrollmentSessionSerializer, EnrollmentStartSerializer,
-    PersonalDataUpdateSerializer, ContactInfoUpdateSerializer, EnrollmentSubmitSerializer
+    CustomerSerializer, CustomerCreateSerializer, CustomerUpdateSerializer,
+    CustomerListSerializer, CustomerAddressSerializer, CustomerDocumentSerializer
 )
-from ceres_project.utils import success_response, paginated_response
+from ceres_project.utils import success_response, error_response
 
 logger = logging.getLogger('ceres')
 
@@ -22,307 +25,166 @@ class CustomerViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing customers
     """
-    queryset = Customer.objects.select_related('personal_data', 'contact_info').all()
-    serializer_class = CustomerSerializer
+    queryset = Customer.objects.select_related('created_by').prefetch_related(
+        'addresses', 'enrollment_documents', 'beneficial_owners'
+    ).all()
     permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['customer_type', 'status', 'risk_level']
+    search_fields = ['first_name', 'last_name', 'entity_name', 'email', 'tax_identifier']
+    ordering_fields = ['created_at', 'updated_at', 'risk_score']
+    ordering = ['-created_at']
     
-    def get_queryset(self):
-        """Filter customers based on user permissions"""
-        queryset = super().get_queryset()
-        
-        # Add filtering based on status, risk level, etc.
-        status_filter = self.request.query_params.get('status')
-        if status_filter:
-            queryset = queryset.filter(status=status_filter)
-        
-        risk_level_filter = self.request.query_params.get('risk_level')
-        if risk_level_filter:
-            queryset = queryset.filter(risk_level=risk_level_filter)
-        
-        return queryset.order_by('-created_at')
+    def get_serializer_class(self):
+        """Return appropriate serializer based on action"""
+        if self.action == 'list':
+            return CustomerListSerializer
+        elif self.action == 'create':
+            return CustomerCreateSerializer
+        elif self.action in ['update', 'partial_update']:
+            return CustomerUpdateSerializer
+        return CustomerSerializer
     
-    def list(self, request, *args, **kwargs):
-        """List customers with pagination"""
-        queryset = self.filter_queryset(self.get_queryset())
-        page = self.paginate_queryset(queryset)
-        
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return paginated_response(serializer.data, self.paginator, request)
-        
-        serializer = self.get_serializer(queryset, many=True)
-        return success_response(serializer.data)
-    
-    def retrieve(self, request, *args, **kwargs):
-        """Retrieve a specific customer"""
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
-        return success_response(serializer.data)
+    def perform_create(self, serializer):
+        """Set created_by when creating customer"""
+        serializer.save(created_by=self.request.user)
     
     @action(detail=True, methods=['get'])
-    def cif(self, request, pk=None):
-        """
-        Get complete Customer Information File (CIF)
-        """
+    def addresses(self, request, pk=None):
+        """Get customer addresses"""
         customer = self.get_object()
-        
-        # Gather all customer data
-        cif_data = {
-            'customer': CustomerSerializer(customer).data,
-            'enrollment_sessions': EnrollmentSessionSerializer(
-                customer.enrollment_sessions.all(), many=True
-            ).data,
-            'documents': [],  # Will be populated by document service
-            'screening_results': [],  # Will be populated by screening service
-            'risk_flags': [],  # Will be populated by risk service
-            'cases': [],  # Will be populated by case management service
-        }
-        
-        logger.info(f"CIF accessed for customer {customer.id}", extra={
-            'customer_id': str(customer.id),
-            'user_id': request.user.id
-        })
-        
-        return success_response(cif_data)
-
-class EnrollmentViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet for managing enrollment sessions
-    """
-    queryset = EnrollmentSession.objects.select_related('customer').all()
-    serializer_class = EnrollmentSessionSerializer
-    
-    def get_permissions(self):
-        """
-        Allow unauthenticated access for starting enrollment
-        """
-        if self.action == 'start':
-            return [AllowAny()]
-        return [IsAuthenticated()]
-    
-    @action(detail=False, methods=['post'])
-    def start(self, request):
-        """
-        Start a new enrollment session
-        """
-        serializer = EnrollmentStartSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        with transaction.atomic():
-            # Create new customer
-            customer = Customer.objects.create()
-            
-            # Create enrollment session
-            session = EnrollmentSession.objects.create(
-                customer=customer,
-                status='started',
-                current_step='personal_data'
-            )
-            
-            # Generate resume token
-            resume_token = session.generate_resume_token()
-            
-            # Create initial contact info if email/phone provided
-            contact_data = {}
-            if serializer.validated_data.get('email'):
-                contact_data['email_primary'] = serializer.validated_data['email']
-            if serializer.validated_data.get('phone'):
-                contact_data['phone_primary'] = serializer.validated_data['phone']
-            
-            if contact_data:
-                CustomerContactInfo.objects.create(
-                    customer=customer,
-                    **contact_data
-                )
-        
-        logger.info(f"Enrollment started for customer {customer.id}", extra={
-            'customer_id': str(customer.id),
-            'session_id': str(session.id)
-        })
-        
-        response_data = {
-            'session_id': session.id,
-            'customer_id': customer.id,
-            'resume_token': resume_token,
-            'current_step': session.current_step,
-            'status': session.status
-        }
-        
-        return success_response(response_data, status_code=status.HTTP_201_CREATED)
-    
-    @action(detail=True, methods=['get'])
-    def status(self, request, pk=None):
-        """
-        Get enrollment session status
-        """
-        session = self.get_object()
-        serializer = self.get_serializer(session)
-        return success_response(serializer.data)
-    
-    @action(detail=True, methods=['put'])
-    def personal_data(self, request, pk=None):
-        """
-        Update personal data for enrollment session
-        """
-        session = self.get_object()
-        
-        if session.status not in ['started', 'personal_data_completed']:
-            return success_response(
-                None, 
-                status_code=status.HTTP_400_BAD_REQUEST,
-                meta={'error': 'Cannot update personal data at this stage'}
-            )
-        
-        serializer = PersonalDataUpdateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        with transaction.atomic():
-            # Create or update personal data
-            personal_data, created = CustomerPersonalData.objects.get_or_create(
-                customer=session.customer,
-                defaults=serializer.validated_data
-            )
-            
-            if not created:
-                for attr, value in serializer.validated_data.items():
-                    setattr(personal_data, attr, value)
-                personal_data.save()
-            
-            # Update session status
-            session.status = 'personal_data_completed'
-            session.current_step = 'documents'
-            session.completion_percentage = 25
-            session.save()
-        
-        logger.info(f"Personal data updated for customer {session.customer.id}", extra={
-            'customer_id': str(session.customer.id),
-            'session_id': str(session.id)
-        })
-        
-        return success_response({
-            'status': session.status,
-            'current_step': session.current_step,
-            'completion_percentage': session.completion_percentage
-        })
-    
-    @action(detail=True, methods=['put'])
-    def contact_info(self, request, pk=None):
-        """
-        Update contact information for enrollment session
-        """
-        session = self.get_object()
-        
-        serializer = ContactInfoUpdateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        with transaction.atomic():
-            # Create or update contact info
-            contact_info, created = CustomerContactInfo.objects.get_or_create(
-                customer=session.customer,
-                defaults=serializer.validated_data
-            )
-            
-            if not created:
-                for attr, value in serializer.validated_data.items():
-                    setattr(contact_info, attr, value)
-                contact_info.save()
-        
-        logger.info(f"Contact info updated for customer {session.customer.id}", extra={
-            'customer_id': str(session.customer.id),
-            'session_id': str(session.id)
-        })
-        
-        return success_response({
-            'status': session.status,
-            'current_step': session.current_step,
-            'completion_percentage': session.completion_percentage
-        })
+        addresses = customer.addresses.all()
+        serializer = CustomerAddressSerializer(addresses, many=True)
+        return success_response(serializer.data, "Customer addresses retrieved successfully")
     
     @action(detail=True, methods=['post'])
-    def submit(self, request, pk=None):
-        """
-        Submit enrollment for review
-        """
-        session = self.get_object()
-        
-        if session.status != 'documents_uploaded':
-            return success_response(
-                None,
-                status_code=status.HTTP_400_BAD_REQUEST,
-                meta={'error': 'Cannot submit enrollment at this stage'}
-            )
-        
-        serializer = EnrollmentSubmitSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        with transaction.atomic():
-            # Update session
-            session.status = 'submitted'
-            session.current_step = 'review'
-            session.completion_percentage = 100
-            session.completed_at = timezone.now()
-            session.save()
-            
-            # Update customer status
-            session.customer.status = 'in_review'
-            session.customer.save()
-            
-            # Store consent data
-            session.session_data.update({
-                'terms_accepted': serializer.validated_data['terms_accepted'],
-                'privacy_policy_accepted': serializer.validated_data['privacy_policy_accepted'],
-                'marketing_consent': serializer.validated_data.get('marketing_consent', False),
-                'submitted_at': timezone.now().isoformat()
-            })
-            session.save()
-        
-        logger.info(f"Enrollment submitted for customer {session.customer.id}", extra={
-            'customer_id': str(session.customer.id),
-            'session_id': str(session.id)
-        })
-        
-        # TODO: Trigger screening and risk assessment processes
-        
-        return success_response({
-            'status': session.status,
-            'customer_status': session.customer.status,
-            'completion_percentage': session.completion_percentage,
-            'message': 'Enrollment submitted successfully for review'
-        })
+    def add_address(self, request, pk=None):
+        """Add address to customer"""
+        customer = self.get_object()
+        serializer = CustomerAddressSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(customer=customer)
+            return success_response(serializer.data, "Address added successfully", status.HTTP_201_CREATED)
+        return error_response("Invalid address data", serializer.errors)
     
-    @action(detail=False, methods=['get'])
-    def resume(self, request):
-        """
-        Resume enrollment session using token
-        """
-        resume_token = request.query_params.get('token')
-        if not resume_token:
-            return success_response(
-                None,
-                status_code=status.HTTP_400_BAD_REQUEST,
-                meta={'error': 'Resume token is required'}
-            )
+    @action(detail=True, methods=['get'])
+    def documents(self, request, pk=None):
+        """Get customer documents"""
+        customer = self.get_object()
+        documents = customer.enrollment_documents.all()
+        serializer = CustomerDocumentSerializer(documents, many=True)
+        return success_response(serializer.data, "Customer documents retrieved successfully")
+    
+    @action(detail=True, methods=['post'])
+    def upload_document(self, request, pk=None):
+        """Upload document for customer"""
+        customer = self.get_object()
+        serializer = CustomerDocumentSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(customer=customer, uploaded_by=request.user)
+            return success_response(serializer.data, "Document uploaded successfully", status.HTTP_201_CREATED)
+        return error_response("Invalid document data", serializer.errors)
+    
+    @action(detail=True, methods=['post'])
+    def screen(self, request, pk=None):
+        """Trigger screening for customer"""
+        customer = self.get_object()
         
-        try:
-            session = EnrollmentSession.objects.get(resume_token=resume_token)
-        except EnrollmentSession.DoesNotExist:
-            return success_response(
-                None,
-                status_code=status.HTTP_404_NOT_FOUND,
-                meta={'error': 'Invalid resume token'}
-            )
+        # Here you would integrate with the screening engine
+        # For now, we'll just update the last screening date
+        customer.last_screening_date = timezone.now()
+        customer.save()
         
-        if session.is_expired():
-            return success_response(
-                None,
-                status_code=status.HTTP_400_BAD_REQUEST,
-                meta={'error': 'Resume token has expired'}
-            )
+        return success_response(
+            {"screening_date": customer.last_screening_date},
+            "Screening initiated successfully"
+        )
+    
+    @action(detail=True, methods=['get'])
+    def risk_assessment(self, request, pk=None):
+        """Get customer risk assessment"""
+        customer = self.get_object()
         
-        # Update last activity
-        session.last_activity_at = timezone.now()
-        session.save()
+        risk_data = {
+            "customer_id": customer.id,
+            "risk_score": customer.risk_score,
+            "risk_level": customer.risk_level,
+            "last_assessment": customer.last_risk_assessment,
+            "pep_status": customer.pep_status,
+            "sanctions_match": customer.sanctions_match,
+            "adverse_media": customer.adverse_media,
+        }
         
-        serializer = self.get_serializer(session)
-        return success_response(serializer.data)
+        return success_response(risk_data, "Risk assessment retrieved successfully")
+
+class CustomerAddressViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing customer addresses
+    """
+    queryset = CustomerAddress.objects.select_related('customer').all()
+    serializer_class = CustomerAddressSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['customer', 'address_type', 'country', 'is_verified']
+
+class CustomerDocumentViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing customer documents
+    """
+    queryset = CustomerDocument.objects.select_related('customer', 'uploaded_by').all()
+    serializer_class = CustomerDocumentSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['customer', 'document_type', 'status']
+    search_fields = ['file_name', 'document_number']
+    ordering_fields = ['uploaded_at', 'processed_at']
+    ordering = ['-uploaded_at']
+    
+    def perform_create(self, serializer):
+        """Set uploaded_by when creating document"""
+        serializer.save(uploaded_by=self.request.user)
+    
+    @action(detail=True, methods=['post'])
+    def process(self, request, pk=None):
+        """Trigger document processing"""
+        document = self.get_object()
+        
+        # Here you would integrate with document processing engine
+        # For now, we'll just update the status
+        document.status = 'processing'
+        document.save()
+        
+        return success_response(
+            {"status": document.status},
+            "Document processing initiated"
+        )
+    
+    @action(detail=True, methods=['post'])
+    def approve(self, request, pk=None):
+        """Approve document"""
+        document = self.get_object()
+        document.status = 'approved'
+        document.reviewed_by = request.user
+        document.reviewed_at = timezone.now()
+        document.save()
+        
+        return success_response(
+            {"status": document.status},
+            "Document approved successfully"
+        )
+    
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """Reject document"""
+        document = self.get_object()
+        document.status = 'rejected'
+        document.reviewed_by = request.user
+        document.reviewed_at = timezone.now()
+        document.processing_notes = request.data.get('notes', '')
+        document.save()
+        
+        return success_response(
+            {"status": document.status},
+            "Document rejected"
+        )
 

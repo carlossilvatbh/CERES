@@ -1,209 +1,291 @@
 """
-Customer Enrollment Models
+Enhanced customer models with international support
 """
+
 import uuid
 from django.db import models
 from django.contrib.auth.models import User
-from django.core.validators import EmailValidator, RegexValidator
-from django.utils import timezone
+from django.core.validators import RegexValidator
+from django.utils.translation import gettext_lazy as _
 
 class Customer(models.Model):
     """
-    Main customer model representing the Customer Information File (CIF)
+    Enhanced customer model supporting both individuals and entities
+    with international compliance requirements
     """
+    
+    CUSTOMER_TYPES = [
+        ('individual', _('Individual')),
+        ('entity', _('Legal Entity')),
+    ]
+    
+    RISK_LEVELS = [
+        ('low', _('Low Risk')),
+        ('medium', _('Medium Risk')),
+        ('high', _('High Risk')),
+        ('critical', _('Critical Risk')),
+    ]
+    
     STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('in_review', 'In Review'),
-        ('approved', 'Approved'),
-        ('rejected', 'Rejected'),
-        ('suspended', 'Suspended'),
+        ('pending', _('Pending Review')),
+        ('approved', _('Approved')),
+        ('rejected', _('Rejected')),
+        ('suspended', _('Suspended')),
+        ('closed', _('Closed')),
     ]
     
-    RISK_LEVEL_CHOICES = [
-        ('unknown', 'Unknown'),
-        ('low', 'Low'),
-        ('medium', 'Medium'),
-        ('high', 'High'),
-        ('critical', 'Critical'),
-    ]
-    
+    # Primary fields
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    external_id = models.CharField(max_length=100, unique=True, null=True, blank=True)
-    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='pending')
-    risk_score = models.IntegerField(default=0)
-    risk_level = models.CharField(max_length=20, choices=RISK_LEVEL_CHOICES, default='unknown')
+    customer_type = models.CharField(max_length=20, choices=CUSTOMER_TYPES, default='individual')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     
-    # Audit fields
+    # Individual fields
+    first_name = models.CharField(max_length=100, blank=True, verbose_name=_('First Name'))
+    middle_name = models.CharField(max_length=100, blank=True, verbose_name=_('Middle Name'))
+    last_name = models.CharField(max_length=100, blank=True, verbose_name=_('Last Name'))
+    date_of_birth = models.DateField(null=True, blank=True, verbose_name=_('Date of Birth'))
+    place_of_birth = models.CharField(max_length=200, blank=True, verbose_name=_('Place of Birth'))
+    gender = models.CharField(max_length=10, choices=[('M', _('Male')), ('F', _('Female')), ('O', _('Other'))], blank=True)
+    
+    # Entity fields
+    entity_name = models.CharField(max_length=200, blank=True, verbose_name=_('Entity Name'))
+    entity_type = models.CharField(max_length=50, blank=True, verbose_name=_('Entity Type'))
+    incorporation_date = models.DateField(null=True, blank=True, verbose_name=_('Incorporation Date'))
+    incorporation_country = models.CharField(max_length=3, blank=True, verbose_name=_('Incorporation Country'))
+    
+    # Common fields
+    nationality = models.CharField(max_length=3, blank=True, verbose_name=_('Nationality'))  # ISO 3166-1 alpha-3
+    tax_identifier = models.CharField(max_length=50, blank=True, verbose_name=_('Tax Identifier'))
+    email = models.EmailField(blank=True, verbose_name=_('Email'))
+    phone = models.CharField(max_length=20, blank=True, verbose_name=_('Phone'))
+    
+    # Risk assessment
+    risk_score = models.IntegerField(default=0, verbose_name=_('Risk Score'))
+    risk_level = models.CharField(max_length=20, choices=RISK_LEVELS, default='low')
+    last_risk_assessment = models.DateTimeField(null=True, blank=True)
+    
+    # Compliance
+    pep_status = models.BooleanField(default=False, verbose_name=_('PEP Status'))
+    sanctions_match = models.BooleanField(default=False, verbose_name=_('Sanctions Match'))
+    adverse_media = models.BooleanField(default=False, verbose_name=_('Adverse Media'))
+    
+    # Metadata
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_customers')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_customers')
-    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='updated_customers')
+    last_screening_date = models.DateTimeField(null=True, blank=True)
+    
+    # Additional data (JSON field for flexibility)
+    metadata = models.JSONField(default=dict, blank=True)
     
     class Meta:
-        db_table = 'customers'
+        verbose_name = _('Customer')
+        verbose_name_plural = _('Customers')
+        ordering = ['-created_at']
         indexes = [
-            models.Index(fields=['status']),
+            models.Index(fields=['customer_type', 'status']),
             models.Index(fields=['risk_level']),
+            models.Index(fields=['last_screening_date']),
             models.Index(fields=['created_at']),
         ]
     
     def __str__(self):
-        return f"Customer {self.external_id or self.id}"
-
-class CustomerPersonalData(models.Model):
-    """
-    Personal data for customers
-    """
-    GENDER_CHOICES = [
-        ('male', 'Male'),
-        ('female', 'Female'),
-        ('other', 'Other'),
-        ('prefer_not_to_say', 'Prefer not to say'),
-    ]
+        if self.customer_type == 'individual':
+            return f"{self.first_name} {self.last_name}".strip() or f"Customer {self.id}"
+        else:
+            return self.entity_name or f"Entity {self.id}"
     
-    MARITAL_STATUS_CHOICES = [
-        ('single', 'Single'),
-        ('married', 'Married'),
-        ('divorced', 'Divorced'),
-        ('widowed', 'Widowed'),
-        ('separated', 'Separated'),
-    ]
+    @property
+    def full_name(self):
+        """Get full name for individuals"""
+        if self.customer_type == 'individual':
+            parts = [self.first_name, self.middle_name, self.last_name]
+            return ' '.join(part for part in parts if part)
+        return self.entity_name
     
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    customer = models.OneToOneField(Customer, on_delete=models.CASCADE, related_name='personal_data')
-    
-    # Name fields
-    first_name = models.CharField(max_length=100)
-    middle_name = models.CharField(max_length=100, blank=True)
-    last_name = models.CharField(max_length=100)
-    full_name = models.CharField(max_length=300)
-    
-    # Personal information
-    date_of_birth = models.DateField(null=True, blank=True)
-    place_of_birth = models.CharField(max_length=200, blank=True)
-    nationality = models.CharField(max_length=100, blank=True)
-    gender = models.CharField(max_length=20, choices=GENDER_CHOICES, blank=True)
-    marital_status = models.CharField(max_length=50, choices=MARITAL_STATUS_CHOICES, blank=True)
-    
-    # Professional information
-    occupation = models.CharField(max_length=200, blank=True)
-    employer = models.CharField(max_length=200, blank=True)
-    annual_income = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    source_of_wealth = models.TextField(blank=True)
-    
-    # Tax information
-    tax_id = models.CharField(max_length=50, blank=True)
-    tax_country = models.CharField(max_length=100, blank=True)
-    
-    # Audit fields
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        db_table = 'customer_personal_data'
-    
-    def save(self, *args, **kwargs):
-        # Auto-generate full_name if not provided
-        if not self.full_name:
-            name_parts = [self.first_name, self.middle_name, self.last_name]
-            self.full_name = ' '.join(filter(None, name_parts))
-        super().save(*args, **kwargs)
-    
-    def __str__(self):
+    @property
+    def display_name(self):
+        """Get display name for any customer type"""
         return self.full_name
+    
+    def get_risk_color(self):
+        """Get color code for risk level"""
+        colors = {
+            'low': '#10B981',      # Green
+            'medium': '#F59E0B',   # Yellow
+            'high': '#EF4444',     # Red
+            'critical': '#7C2D12', # Dark Red
+        }
+        return colors.get(self.risk_level, '#6B7280')
 
-class CustomerContactInfo(models.Model):
+class CustomerAddress(models.Model):
     """
-    Contact information for customers
+    Customer address model supporting multiple addresses per customer
     """
+    
+    ADDRESS_TYPES = [
+        ('residential', _('Residential')),
+        ('business', _('Business')),
+        ('mailing', _('Mailing')),
+        ('registered', _('Registered Office')),
+    ]
+    
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    customer = models.OneToOneField(Customer, on_delete=models.CASCADE, related_name='contact_info')
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='addresses')
+    address_type = models.CharField(max_length=20, choices=ADDRESS_TYPES, default='residential')
     
-    # Address
-    address_line1 = models.CharField(max_length=200, blank=True)
-    address_line2 = models.CharField(max_length=200, blank=True)
-    city = models.CharField(max_length=100, blank=True)
-    state_province = models.CharField(max_length=100, blank=True)
-    postal_code = models.CharField(max_length=20, blank=True)
-    country = models.CharField(max_length=100, blank=True)
+    # Address fields
+    street_address_1 = models.CharField(max_length=200, verbose_name=_('Street Address 1'))
+    street_address_2 = models.CharField(max_length=200, blank=True, verbose_name=_('Street Address 2'))
+    city = models.CharField(max_length=100, verbose_name=_('City'))
+    state_province = models.CharField(max_length=100, blank=True, verbose_name=_('State/Province'))
+    postal_code = models.CharField(max_length=20, blank=True, verbose_name=_('Postal Code'))
+    country = models.CharField(max_length=3, verbose_name=_('Country'))  # ISO 3166-1 alpha-3
     
-    # Contact details
-    phone_primary = models.CharField(
-        max_length=50, 
-        blank=True,
-        validators=[RegexValidator(r'^\+?1?\d{9,15}$', 'Enter a valid phone number.')]
-    )
-    phone_secondary = models.CharField(
-        max_length=50, 
-        blank=True,
-        validators=[RegexValidator(r'^\+?1?\d{9,15}$', 'Enter a valid phone number.')]
-    )
-    email_primary = models.EmailField(blank=True, validators=[EmailValidator()])
-    email_secondary = models.EmailField(blank=True, validators=[EmailValidator()])
+    # Verification
+    is_verified = models.BooleanField(default=False)
+    verified_date = models.DateTimeField(null=True, blank=True)
     
-    # Audit fields
+    # Metadata
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        db_table = 'customer_contact_info'
+        verbose_name = _('Customer Address')
+        verbose_name_plural = _('Customer Addresses')
+        ordering = ['address_type', '-created_at']
     
     def __str__(self):
-        return f"Contact info for {self.customer}"
+        return f"{self.customer.display_name} - {self.get_address_type_display()}"
+    
+    @property
+    def full_address(self):
+        """Get formatted full address"""
+        parts = [
+            self.street_address_1,
+            self.street_address_2,
+            self.city,
+            self.state_province,
+            self.postal_code,
+            self.country
+        ]
+        return ', '.join(part for part in parts if part)
 
-class EnrollmentSession(models.Model):
+class CustomerDocument(models.Model):
     """
-    Tracks enrollment sessions for customers
+    Customer document model for KYC documentation
     """
+    
+    DOCUMENT_TYPES = [
+        ('passport', _('Passport')),
+        ('national_id', _('National ID')),
+        ('drivers_license', _('Driver\'s License')),
+        ('utility_bill', _('Utility Bill')),
+        ('bank_statement', _('Bank Statement')),
+        ('proof_of_address', _('Proof of Address')),
+        ('articles_of_incorporation', _('Articles of Incorporation')),
+        ('certificate_of_good_standing', _('Certificate of Good Standing')),
+        ('beneficial_ownership', _('Beneficial Ownership Declaration')),
+        ('other', _('Other')),
+    ]
+    
     STATUS_CHOICES = [
-        ('started', 'Started'),
-        ('personal_data_completed', 'Personal Data Completed'),
-        ('documents_uploaded', 'Documents Uploaded'),
-        ('submitted', 'Submitted'),
-        ('completed', 'Completed'),
-        ('abandoned', 'Abandoned'),
+        ('pending', _('Pending Review')),
+        ('processing', _('Processing')),
+        ('approved', _('Approved')),
+        ('rejected', _('Rejected')),
+        ('expired', _('Expired')),
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='enrollment_sessions')
-    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='started')
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='enrollment_documents')
+    document_type = models.CharField(max_length=50, choices=DOCUMENT_TYPES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     
-    # Session data
-    session_data = models.JSONField(default=dict, blank=True)
-    current_step = models.CharField(max_length=50, default='personal_data')
-    completion_percentage = models.IntegerField(default=0)
+    # File information
+    file_name = models.CharField(max_length=255)
+    file_path = models.FileField(upload_to='customer_documents/')
+    file_size = models.PositiveIntegerField()
+    file_hash = models.CharField(max_length=64, blank=True)  # SHA-256 hash
     
-    # Timestamps
-    started_at = models.DateTimeField(auto_now_add=True)
-    last_activity_at = models.DateTimeField(auto_now=True)
-    completed_at = models.DateTimeField(null=True, blank=True)
+    # Document details
+    document_number = models.CharField(max_length=100, blank=True)
+    issue_date = models.DateField(null=True, blank=True)
+    expiry_date = models.DateField(null=True, blank=True)
+    issuing_authority = models.CharField(max_length=200, blank=True)
+    issuing_country = models.CharField(max_length=3, blank=True)
     
-    # Resume functionality
-    resume_token = models.CharField(max_length=255, unique=True, null=True, blank=True)
-    resume_expires_at = models.DateTimeField(null=True, blank=True)
+    # Processing results
+    ocr_text = models.TextField(blank=True)
+    ocr_confidence = models.FloatField(null=True, blank=True)
+    authenticity_score = models.FloatField(null=True, blank=True)
+    processing_notes = models.TextField(blank=True)
+    
+    # Metadata
+    uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    processed_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='reviewed_documents')
+    reviewed_at = models.DateTimeField(null=True, blank=True)
     
     class Meta:
-        db_table = 'enrollment_sessions'
+        verbose_name = _('Customer Document')
+        verbose_name_plural = _('Customer Documents')
+        ordering = ['-uploaded_at']
         indexes = [
+            models.Index(fields=['customer', 'document_type']),
             models.Index(fields=['status']),
-            models.Index(fields=['resume_token']),
-            models.Index(fields=['last_activity_at']),
+            models.Index(fields=['uploaded_at']),
         ]
     
-    def is_expired(self):
-        """Check if the resume token is expired"""
-        if not self.resume_expires_at:
-            return True
-        return timezone.now() > self.resume_expires_at
+    def __str__(self):
+        return f"{self.customer.display_name} - {self.get_document_type_display()}"
+
+class UltimateBeneficialOwner(models.Model):
+    """
+    Ultimate Beneficial Owner (UBO) model for entity customers
+    """
     
-    def generate_resume_token(self):
-        """Generate a new resume token"""
-        import secrets
-        self.resume_token = secrets.token_urlsafe(32)
-        self.resume_expires_at = timezone.now() + timezone.timedelta(days=30)
-        self.save()
-        return self.resume_token
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    entity_customer = models.ForeignKey(
+        Customer, 
+        on_delete=models.CASCADE, 
+        related_name='beneficial_owners',
+        limit_choices_to={'customer_type': 'entity'}
+    )
+    
+    # UBO details
+    first_name = models.CharField(max_length=100, verbose_name=_('First Name'))
+    last_name = models.CharField(max_length=100, verbose_name=_('Last Name'))
+    date_of_birth = models.DateField(verbose_name=_('Date of Birth'))
+    nationality = models.CharField(max_length=3, verbose_name=_('Nationality'))
+    
+    # Ownership details
+    ownership_percentage = models.DecimalField(max_digits=5, decimal_places=2, verbose_name=_('Ownership %'))
+    control_type = models.CharField(max_length=50, blank=True, verbose_name=_('Control Type'))
+    
+    # Address
+    address = models.TextField(verbose_name=_('Address'))
+    country = models.CharField(max_length=3, verbose_name=_('Country'))
+    
+    # PEP and sanctions
+    is_pep = models.BooleanField(default=False, verbose_name=_('Is PEP'))
+    pep_details = models.TextField(blank=True, verbose_name=_('PEP Details'))
+    sanctions_match = models.BooleanField(default=False, verbose_name=_('Sanctions Match'))
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = _('Ultimate Beneficial Owner')
+        verbose_name_plural = _('Ultimate Beneficial Owners')
+        ordering = ['-ownership_percentage', 'last_name', 'first_name']
     
     def __str__(self):
-        return f"Enrollment session {self.id} for {self.customer}"
+        return f"{self.first_name} {self.last_name} ({self.ownership_percentage}%)"
+    
+    @property
+    def full_name(self):
+        return f"{self.first_name} {self.last_name}"
 

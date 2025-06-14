@@ -31,6 +31,8 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     'django_extensions',
+    'django_filters',
+    'drf_spectacular',
     
     # CERES apps
     'customer_enrollment',
@@ -97,10 +99,20 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # Internationalization
-LANGUAGE_CODE = 'pt-br'
-TIME_ZONE = 'America/Sao_Paulo'
+LANGUAGE_CODE = 'en-us'  # Changed from 'pt-br' to 'en-us' as default
+TIME_ZONE = 'UTC'  # Changed from 'America/Sao_Paulo' to 'UTC' for international use
 USE_I18N = True
 USE_TZ = True
+
+# Supported languages for internationalization
+LANGUAGES = [
+    ('en', 'English'),
+    ('pt-br', 'Português (Brasil)'),
+]
+
+LOCALE_PATHS = [
+    BASE_DIR / 'locale',
+]
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
@@ -135,7 +147,39 @@ REST_FRAMEWORK = {
         'rest_framework.parsers.MultiPartParser',
         'rest_framework.parsers.FormParser',
     ],
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
+    ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'EXCEPTION_HANDLER': 'ceres_project.utils.custom_exception_handler',
+}
+
+# DRF Spectacular settings for OpenAPI 3.1
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'CERES API',
+    'DESCRIPTION': 'Customer Enrollment and Risk Evaluation System - Comprehensive KYC and Compliance API',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'SCHEMA_PATH_PREFIX': '/api/v1/',
+    'COMPONENT_SPLIT_REQUEST': True,
+    'SORT_OPERATIONS': False,
+    'ENABLE_DJANGO_DEPLOY_CHECK': False,
+    'DISABLE_ERRORS_AND_WARNINGS': True,
+    'SERVERS': [
+        {'url': 'http://localhost:8000', 'description': 'Development server'},
+        {'url': 'https://api.ceres-system.com', 'description': 'Production server'},
+    ],
+    'TAGS': [
+        {'name': 'Authentication', 'description': 'User authentication and authorization'},
+        {'name': 'Customers', 'description': 'Customer management and KYC operations'},
+        {'name': 'Screening', 'description': 'Sanctions and PEP screening'},
+        {'name': 'Documents', 'description': 'Document processing and OCR'},
+        {'name': 'Reports', 'description': 'Compliance reporting and analytics'},
+        {'name': 'Risk Assessment', 'description': 'Risk scoring and evaluation'},
+        {'name': 'Case Management', 'description': 'Investigation case management'},
+    ],
 }
 
 # JWT Configuration
@@ -170,6 +214,8 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://localhost:5173",  # Added Vite default port
+    "http://127.0.0.1:5173",  # Added Vite default port
     "http://localhost:8080",
     "http://127.0.0.1:8080",
 ]

@@ -11,7 +11,7 @@ from django.db import transaction
 import logging
 import mimetypes
 
-from customer_enrollment.models import Customer, EnrollmentSession
+from customer_enrollment.models import Customer
 from .models import CustomerDocument, DocumentProcessingTask, DocumentTemplate
 from .serializers import (
     CustomerDocumentSerializer, DocumentUploadSerializer, DocumentProcessingTaskSerializer,
