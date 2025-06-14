@@ -289,3 +289,43 @@ class UltimateBeneficialOwner(models.Model):
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
 
+
+class EnrollmentSession(models.Model):
+    """Track the progress of a customer's enrollment"""
+
+    STATUS_CHOICES = [
+        ("started", "Started"),
+        ("personal_data_completed", "Personal Data Completed"),
+        ("documents_uploaded", "Documents Uploaded"),
+        ("submitted", "Submitted"),
+        ("completed", "Completed"),
+        ("abandoned", "Abandoned"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    customer = models.ForeignKey(
+        Customer,
+        on_delete=models.CASCADE,
+        related_name="enrollment_sessions",
+    )
+    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default="started")
+    session_data = models.JSONField(default=dict, blank=True)
+    current_step = models.CharField(max_length=50, default="personal_data")
+    completion_percentage = models.IntegerField(default=0)
+    started_at = models.DateTimeField(auto_now_add=True)
+    last_activity_at = models.DateTimeField(auto_now=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    resume_token = models.CharField(max_length=255, null=True, blank=True, unique=True)
+    resume_expires_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "enrollment_sessions"
+        indexes = [
+            models.Index(fields=["status"], name="enrollment__status_f11fc0_idx"),
+            models.Index(fields=["resume_token"], name="enrollment__resume__ce85e8_idx"),
+            models.Index(fields=["last_activity_at"], name="enrollment__last_ac_389f2d_idx"),
+        ]
+
+    def __str__(self):
+        return f"EnrollmentSession({self.customer_id}, status={self.status})"
+
