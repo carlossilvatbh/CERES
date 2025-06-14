@@ -1,3 +1,45 @@
-from django.test import TestCase
+from django.test import TestCase, override_settings
+from django.contrib.auth.models import User
+from rest_framework.test import APIClient
+from django.core.files.uploadedfile import SimpleUploadedFile
+from unittest.mock import patch
 
-# Create your tests here.
+from customer_enrollment.models import Customer, EnrollmentSession
+from document_processing.models import CustomerDocument
+
+
+@override_settings(MIGRATION_MODULES={"customer_enrollment": None, "document_processing": None})
+class DocumentUploadSessionTest(TestCase):
+    """Tests for document upload during an enrollment session"""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="tester", password="pass")
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        self.customer = Customer.objects.create(created_by=self.user)
+        self.session = EnrollmentSession.objects.create(
+            customer=self.customer,
+            status="personal_data_completed",
+        )
+
+    @patch("document_processing.views.DocumentProcessingService.start_document_processing")
+    def test_upload_updates_enrollment_session(self, mock_start):
+        file_obj = SimpleUploadedFile(
+            "test.pdf", b"%PDF-1.4 test", content_type="application/pdf"
+        )
+        url = "/api/v1/documents/upload/"
+        data = {
+            "customer_id": str(self.customer.id),
+            "document_type": "passport",
+            "file": file_obj,
+        }
+
+        response = self.client.post(url, data, format="multipart")
+
+        self.assertEqual(response.status_code, 201)
+        self.session.refresh_from_db()
+        self.assertEqual(self.session.status, "documents_uploaded")
+        self.assertEqual(self.session.current_step, "review")
+        self.assertEqual(self.session.completion_percentage, 75)
+        mock_start.assert_called_once()
+        self.assertEqual(CustomerDocument.objects.count(), 1)
