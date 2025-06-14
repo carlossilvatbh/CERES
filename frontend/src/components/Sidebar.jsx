@@ -19,6 +19,7 @@ const navigation = [
   { name: 'Documentos', href: '/documents', icon: FileText },
   { name: 'Screening', href: '/screening', icon: Shield },
   { name: 'Relatórios', href: '/reports', icon: BarChart3 },
+  { name: 'Configurações', href: '/settings', icon: Settings },
 ]
 
 const Sidebar = () => {
