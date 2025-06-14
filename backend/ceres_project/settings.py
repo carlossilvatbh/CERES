@@ -17,7 +17,7 @@ SECRET_KEY = config('SECRET_KEY', default='ceres-dev-key-change-in-production')
 DEBUG = config('DEBUG', default=False, cast=bool)
 
 # Render.com and production configuration
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,.onrender.com', cast=lambda v: [s.strip() for s in v.split(',')])
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,.onrender.com,.railway.app', cast=lambda v: [s.strip() for s in v.split(',')])
 
 # Application definition
 INSTALLED_APPS = [
