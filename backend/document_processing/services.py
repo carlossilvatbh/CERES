@@ -190,18 +190,20 @@ class DocumentProcessingService:
             
             # Perform OCR
             ocr_result = self.ocr_service.extract_text(document.file.path)
-            
+
+            raw_text = ocr_result.get('raw_text', '')
+
             # Update document with OCR results
-            document.ocr_data = ocr_result.get('raw_text', {})
+            document.ocr_data = {'raw_text': raw_text}
             document.extracted_data = ocr_result.get('structured_data', {})
             document.processed_at = timezone.now()
             document.save()
-            
+
             # Complete task
             self._complete_task(task, {
                 'confidence_score': ocr_result.get('confidence', 0),
                 'processing_time': ocr_result.get('processing_time', 0),
-                'text_blocks_found': len(ocr_result.get('raw_text', {}))
+                'text_blocks_found': len(raw_text.split())
             })
             
             # Start validation after OCR
