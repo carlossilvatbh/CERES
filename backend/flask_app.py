@@ -2,8 +2,9 @@ from flask import Flask
 import os
 import sys
 
-# Add Django project to path
-sys.path.insert(0, '/home/ubuntu/ceres_backend')
+# Add Django project to path dynamically
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, BASE_DIR)
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ceres_project.settings')
 
 import django
