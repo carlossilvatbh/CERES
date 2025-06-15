@@ -21,25 +21,22 @@ RUN apt-get update && apt-get install -y \
 # Upgrade pip
 RUN pip install --upgrade pip
 
-# Copy production requirements and install Python dependencies
+# Copy backend requirements and install
 COPY backend/requirements-production.txt /app/
 RUN pip install --no-cache-dir -r requirements-production.txt
 
-# Copy project
+# Copy backend code
 COPY backend/ /app/
 
-# Create necessary directories
+# Create directories
 RUN mkdir -p /app/staticfiles /app/media
-
-# Collect static files
-RUN python manage.py collectstatic --noinput --settings=ceres_project.settings.production || true
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:$PORT/health/ || exit 1
 
-# Expose port (Railway will set PORT environment variable)
+# Expose port
 EXPOSE $PORT
 
-# Run gunicorn with Railway's PORT variable
-CMD ["sh", "-c", "python manage.py migrate --settings=ceres_project.settings.production && gunicorn ceres_project.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 60 --log-level info"]
+# Start command
+CMD ["sh", "-c", "python manage.py collectstatic --noinput && python manage.py migrate && gunicorn ceres_project.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 60"]

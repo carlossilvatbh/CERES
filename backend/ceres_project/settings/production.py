@@ -10,17 +10,14 @@ DEBUG = False
 
 # Production hosts - Railway and custom domains
 ALLOWED_HOSTS = [
-    'ceres-production-3950.up.railway.app',
-    'ceres-production-8d0c.up.railway.app',
-    'ceres-system.com',
-    'www.ceres-system.com',
-    'staging.ceres-system.com',
     '.railway.app',
+    '*.railway.app', 
     '.up.railway.app',
-    '.onrender.com',
+    '*.up.railway.app',
+    'ceres.vercel.app',
+    '*.vercel.app',
     'localhost',
     '127.0.0.1',
-    '*',  # Temporary for debugging - remove in final production
 ]
 
 # Database for production - PostgreSQL required
