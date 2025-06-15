@@ -28,6 +28,9 @@ redis==5.0.1
 # Django Extensions
 django-extensions==3.2.3
 
+# Development Tools
+django-debug-toolbar==4.2.0
+
 # Basic utilities
 requests==2.31.0
 
