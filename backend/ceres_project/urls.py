@@ -1,7 +1,8 @@
 """
 CERES project URL Configuration
 """
-from django.contrib import admin\nfrom .health import health_check\n
+from django.contrib import admin
+from .health import health_check
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
@@ -16,7 +17,8 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
 )
 
-urlpatterns = [\n    path('health/', health_check, name='health_check'),
+urlpatterns = [
+    path('health/', health_check, name='health_check'),
     path('admin/', admin.site.urls),
     
     # API Documentation
