@@ -1,15 +1,11 @@
 [variables]
-NIXPACKS_PYTHON_VERSION = "3.12"
+NIXPACKS_PYTHON_VERSION = "3.11"
 
 [phases.setup]
 nixPkgs = [
-    "python312", 
-    "python312Packages.pip",
-    "postgresql",
-    "tesseract",
-    "poppler_utils",
-    "imagemagick",
-    "redis"
+    "python311", 
+    "python311Packages.pip",
+    "postgresql"
 ]
 
 [phases.install]

@@ -1,20 +1,10 @@
 {
-  "services": {
-    "web": {
-      "build": {
-        "command": "cd backend && gunicorn ceres_project.wsgi --bind 0.0.0.0:$PORT --workers 2 --timeout 30"
-      }
-    },
-    "worker": {
-      "build": {
-        "command": "cd backend && celery -A ceres_project worker --loglevel=info --concurrency=2"
-      }
-    },
-    "beat": {
-      "build": {
-        "command": "cd backend && celery -A ceres_project beat --loglevel=info"
-      }
-    }
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "DOCKERFILE"
+  },
+  "deploy": {
+    "startCommand": "cd backend && python manage.py migrate && gunicorn ceres_project.wsgi:application --bind 0.0.0.0:$PORT --workers 2"
   }
 }
 
