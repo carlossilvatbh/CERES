@@ -1,0 +1,21 @@
+[build]
+  publish = "dist"
+  command = "npm run build"
+
+[build.environment]
+  VITE_API_BASE_URL = "https://ceres-production-8d0c.up.railway.app/api/v1"
+  VITE_API_AUTH_URL = "https://ceres-production-8d0c.up.railway.app/api/auth"
+  VITE_APP_NAME = "CERES"
+  VITE_APP_VERSION = "2.0.0"
+  VITE_APP_ENVIRONMENT = "production"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "max-age=31536000, immutable"
+
