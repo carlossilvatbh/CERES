@@ -5,6 +5,7 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
+ENV DJANGO_ENVIRONMENT=production
 
 # Set work directory
 WORKDIR /app
@@ -19,9 +20,9 @@ RUN apt-get update && apt-get install -y \
 # Upgrade pip
 RUN pip install --upgrade pip
 
-# Copy requirements and install Python dependencies
-COPY backend/requirements.txt /app/
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy production requirements and install Python dependencies
+COPY backend/requirements-production.txt /app/
+RUN pip install --no-cache-dir -r requirements-production.txt
 
 # Copy project
 COPY backend/ /app/
