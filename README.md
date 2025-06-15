@@ -1,143 +1,151 @@
-# CERES - Sistema de Compliance e Avaliação de Riscos
+# CERES - Compliance and Risk Evaluation System
 
-## 🚀 Melhorias Implementadas - Versão 2.0
+## 🚀 Complete Implementation - Version 2.0
 
-### ✅ **Correções Críticas de Deployment**
-- **nixpacks.toml**: Configuração completa para Railway.app com PostgreSQL, Redis, Tesseract
-- **Settings refatorados**: Estrutura modular (base/development/production)
-- **Railway.json**: Configuração multi-serviços (web, worker, beat)
-- **PostgreSQL**: Migração de SQLite para PostgreSQL com dj_database_url
-- **Scripts de deployment**: Automatização para workers Celery
+### ✅ **Critical Deployment Fixes**
+- **nixpacks.toml**: Complete Railway.app configuration with PostgreSQL, Redis, Tesseract
+- **Modular Settings**: Structured configuration (base/development/production)
+- **Railway.json**: Multi-service configuration (web, worker, beat)
+- **PostgreSQL**: Migration from SQLite to PostgreSQL with dj_database_url
+- **Deployment Scripts**: Automation for Celery workers
 
-### 🔍 **Fontes de Screening Implementadas**
-- **OFAC (US Treasury)**: Download e parsing XML oficial
-- **UN Consolidated List**: API das Nações Unidas com fallback XML
-- **EU Sanctions**: Lista consolidada da União Europeia
-- **OpenSanctions PEP**: Base de Pessoas Politicamente Expostas
-- **DataSourceManager**: Gerenciador unificado com busca paralela
+### 🔍 **Implemented Screening Sources**
+- **OFAC (US Treasury)**: Official XML download and parsing
+- **UN Consolidated List**: United Nations API with XML fallback
+- **EU Sanctions**: European Union consolidated list
+- **OpenSanctions PEP**: Politically Exposed Persons database
+- **DataSourceManager**: Unified manager with parallel search
 
-### 🧠 **OCR Avançado**
-- **Pré-processamento de imagens**: Deskewing, noise reduction, contrast enhancement
-- **Múltiplas configurações**: PSM 3, 6, 7 com adaptive threshold
-- **Extração estruturada**: Parsing específico para passaportes, RG, CNH
-- **Tratamento robusto de erros**: Fallbacks e confidence scoring
+### 🧠 **Advanced OCR**
+- **Image Preprocessing**: Deskewing, noise reduction, contrast enhancement
+- **Multiple Configurations**: PSM 3, 6, 7 with adaptive threshold
+- **Structured Extraction**: Specific parsing for passports, ID cards, driver licenses
+- **Robust Error Handling**: Fallbacks and confidence scoring
 
-### ⚡ **Sistema de Cache Distribuído**
-- **Redis Cache**: Cache inteligente com TTL configurável
-- **Invalidação automática**: Baseada em eventos de domínio
-- **Performance monitoring**: Métricas de execução e memória
-- **Batch processing**: Otimização para grandes volumes
+### ⚡ **Distributed Cache System**
+- **Redis Cache**: Intelligent caching with configurable TTL
+- **Automatic Invalidation**: Based on domain events
+- **Performance Monitoring**: Execution and memory metrics
+- **Batch Processing**: Optimization for large volumes
 
-### 🚨 **Sistema de Alertas em Tempo Real**
-- **WebSocket**: Alertas instantâneos via channels/channels-redis
-- **Severidade configurável**: Low, Medium, High, Critical
-- **Tipos específicos**: High-risk match, document errors, system errors
-- **Acknowledge/Resolve**: Workflow completo de gerenciamento
+### 🚨 **Real-time Alert System**
+- **WebSocket**: Instant alerts via channels/channels-redis
+- **Configurable Severity**: Low, Medium, High, Critical
+- **Specific Types**: High-risk match, document errors, system errors
+- **Acknowledge/Resolve**: Complete management workflow
 
-### 🏗️ **Arquitetura Domain-Driven**
-- **Boundaries claros**: Customer, Document, Screening, Alerting
-- **Event-driven**: Domain events com event bus
-- **Repository pattern**: Interfaces abstratas para persistência
-- **Application services**: Orquestração de operações complexas
+### 🏗️ **Domain-Driven Architecture**
+- **Clear Boundaries**: Customer, Document, Screening, Alerting
+- **Event-Driven**: Domain events with event bus
+- **Repository Pattern**: Abstract interfaces for persistence
+- **Application Services**: Complex operation orchestration
 
-### 🌍 **Internacionalização**
-- **Múltiplos idiomas**: Português (BR), English, Español
-- **Traduções completas**: UI, mensagens de erro, alertas
-- **Formatação localizada**: Datas, moedas, números
-- **Utilitários i18n**: Helpers para tradução dinâmica
+### 🌍 **Internationalization**
+- **Multiple Languages**: Portuguese (BR), English, Spanish
+- **Complete Translations**: UI, error messages, alerts
+- **Localized Formatting**: Dates, currencies, numbers
+- **i18n Utilities**: Dynamic translation helpers
 
-### 🛡️ **Correções de Bugs Críticos**
-- **BUG-01**: Validação robusta de documentos (MIME, tamanho, segurança)
-- **BUG-02**: Tratamento de erros Celery com dict.get() e fallbacks
-- **BUG-03**: Fix infinite re-render com useCallback e useMemo
+### 🛡️ **Critical Bug Fixes**
+- **BUG-01**: Robust document validation (MIME, size, security)
+- **BUG-02**: Celery error handling with dict.get() and fallbacks
+- **BUG-03**: Fixed infinite re-render with useCallback and useMemo
 
-### 📊 **Monitoramento e Performance**
-- **Performance decorators**: Medição automática de tempo de execução
-- **Memory monitoring**: Alertas para uso excessivo de memória
-- **Database optimization**: Log de queries lentas
-- **Cache statistics**: Métricas detalhadas de cache
+### 📊 **Monitoring and Performance**
+- **Performance Decorators**: Automatic execution time measurement
+- **Memory Monitoring**: Alerts for excessive memory usage
+- **Database Optimization**: Slow query logging
+- **Cache Statistics**: Detailed cache metrics
 
-## 🔧 **Tecnologias Utilizadas**
+## 🔧 **Technologies Used**
 
 ### Backend
 - **Django 5.0.4** + **DRF 3.15.2**
-- **PostgreSQL** com dj_database_url
-- **Redis** para cache e WebSocket
-- **Celery 5.4.1** para processamento assíncrono
-- **Channels 4.0.0** para WebSocket
-- **OpenCV + Tesseract** para OCR avançado
+- **PostgreSQL** with dj_database_url
+- **Redis** for cache and WebSocket
+- **Celery 5.4.1** for async processing
+- **Channels 4.0.0** for WebSocket
+- **OpenCV + Tesseract** for advanced OCR
 
 ### Screening & APIs
-- **aiohttp** para requisições assíncronas
-- **fuzzywuzzy** para matching fuzzy
-- **xml.etree.ElementTree** para parsing XML
-- **requests** para APIs REST
+- **aiohttp** for async requests
+- **fuzzywuzzy** for fuzzy matching
+- **xml.etree.ElementTree** for XML parsing
+- **requests** for REST APIs
 
 ### Deployment
-- **Railway.app** como plataforma
-- **Gunicorn** como WSGI server
-- **WhiteNoise** para arquivos estáticos
-- **Nixpacks** para build automatizado
+- **Railway.app** as platform
+- **Gunicorn** as WSGI server
+- **WhiteNoise** for static files
+- **Nixpacks** for automated builds
 
-## 📁 **Estrutura do Projeto**
+## 📁 **Project Structure**
 
 ```
 CERES/
 ├── backend/
 │   ├── ceres_project/
-│   │   ├── settings/          # Settings modulares
+│   │   ├── settings/          # Modular settings
 │   │   │   ├── base.py
 │   │   │   ├── development.py
 │   │   │   └── production.py
-│   │   ├── celery.py          # Configuração Celery otimizada
+│   │   ├── celery.py          # Optimized Celery config
 │   │   └── routing.py         # WebSocket routing
-│   ├── core/                  # Utilitários centrais
-│   │   ├── alerts.py          # Sistema de alertas
-│   │   ├── cache_manager.py   # Cache distribuído
+│   ├── core/                  # Central utilities
+│   │   ├── alerts.py          # Alert system
+│   │   ├── cache_manager.py   # Distributed cache
 │   │   ├── domain.py          # Domain-driven design
-│   │   ├── i18n.py           # Internacionalização
-│   │   └── performance.py     # Monitoramento
+│   │   ├── i18n.py           # Internationalization
+│   │   ├── performance.py     # Monitoring
+│   │   └── monitoring.py      # Health checks
 │   ├── sanctions_screening/
-│   │   └── sources/           # Fontes de screening
+│   │   └── sources/           # Screening sources
 │   │       ├── ofac_source.py
 │   │       ├── un_source.py
 │   │       ├── eu_source.py
 │   │       ├── opensanctions_source.py
 │   │       └── data_source_manager.py
 │   ├── document_processing/
-│   │   ├── enhanced_ocr.py    # OCR avançado
-│   │   └── validators.py      # Validação robusta
-│   └── requirements.txt       # Dependências atualizadas
+│   │   ├── enhanced_ocr.py    # Advanced OCR
+│   │   └── validators.py      # Robust validation
+│   ├── tests/                 # Comprehensive tests
+│   │   └── test_comprehensive.py
+│   └── requirements.txt       # Updated dependencies
 ├── frontend/
 │   ├── src/
 │   │   ├── hooks/
-│   │   │   └── useApi.js      # Hook otimizado
+│   │   │   └── useApi.js      # Optimized hook
 │   │   └── pages/
-│   │       └── DashboardPage.jsx  # Componente otimizado
-├── scripts/                   # Scripts de deployment
+│   │       └── DashboardPage.jsx  # Optimized component
+├── scripts/                   # Deployment scripts
 │   ├── start_worker.sh
 │   └── start_beat.sh
-├── nixpacks.toml             # Configuração Railway
-├── railway.json              # Multi-serviços
-├── .env.railway              # Template de variáveis
-└── RAILWAY_DEPLOYMENT_GUIDE.md  # Guia completo
+├── docs/                      # Documentation
+│   ├── API_DOCUMENTATION.md
+│   ├── DEPLOYMENT_GUIDE.md
+│   ├── USER_MANUAL.md
+│   └── MAINTENANCE_GUIDE.md
+├── nixpacks.toml             # Railway configuration
+├── railway.json              # Multi-services
+├── .env.railway              # Environment template
+└── README.md                 # This file
 ```
 
-## 🚀 **Deploy no Railway.app**
+## 🚀 **Railway.app Deployment**
 
-### Pré-requisitos
-1. Conta no Railway.app
-2. Repositório GitHub conectado
-3. Variáveis de ambiente configuradas
+### Prerequisites
+1. Railway.app account
+2. Connected GitHub repository
+3. Configured environment variables
 
-### Serviços Necessários
-- **PostgreSQL**: Database principal
-- **Redis**: Cache e WebSocket
-- **Web Service**: Aplicação Django
+### Required Services
+- **PostgreSQL**: Main database
+- **Redis**: Cache and WebSocket
+- **Web Service**: Django application
 - **Worker Service**: Celery worker
-- **Beat Service**: Celery beat (opcional)
+- **Beat Service**: Celery beat (optional)
 
-### Variáveis de Ambiente
+### Environment Variables
 ```bash
 # Database
 DATABASE_URL=postgresql://...
@@ -149,36 +157,36 @@ DEBUG=False
 DJANGO_ENVIRONMENT=production
 
 # Screening APIs
-OPENSANCTIONS_API_KEY=your-api-key  # Opcional
+OPENSANCTIONS_API_KEY=your-api-key  # Optional
 
-# Email (opcional)
+# Email (optional)
 EMAIL_HOST=smtp.gmail.com
 EMAIL_HOST_USER=your-email
 EMAIL_HOST_PASSWORD=your-password
 ```
 
-## 📈 **Métricas de Performance**
+## 📈 **Performance Metrics**
 
 ### Screening
-- **OFAC**: ~2-3s para download completo
-- **UN**: ~1-2s via API JSON
-- **EU**: ~3-4s para parsing XML
-- **OpenSanctions**: ~0.5s por consulta
+- **OFAC**: ~2-3s for complete download
+- **UN**: ~1-2s via JSON API
+- **EU**: ~3-4s for XML parsing
+- **OpenSanctions**: ~0.5s per query
 
 ### OCR
-- **Documentos simples**: ~1-2s
-- **Documentos complexos**: ~3-5s
-- **Pré-processamento**: +0.5-1s
-- **Confidence média**: 85-95%
+- **Simple documents**: ~1-2s
+- **Complex documents**: ~3-5s
+- **Preprocessing**: +0.5-1s
+- **Average confidence**: 85-95%
 
 ### Cache
-- **Hit rate**: >90% após warm-up
-- **Response time**: <50ms para cache hits
-- **TTL padrão**: 24h para screening, 2h para OCR
+- **Hit rate**: >90% after warm-up
+- **Response time**: <50ms for cache hits
+- **Default TTL**: 24h for screening, 2h for OCR
 
-## 🔒 **Segurança**
+## 🔒 **Security**
 
-### Validação de Documentos
+### Document Validation
 - **MIME type verification**
 - **File size limits** (50MB)
 - **Magic number validation**
@@ -186,7 +194,7 @@ EMAIL_HOST_PASSWORD=your-password
 
 ### API Security
 - **JWT Authentication**
-- **CORS configurado**
+- **Configured CORS**
 - **Rate limiting ready**
 - **Input sanitization**
 
@@ -196,26 +204,47 @@ EMAIL_HOST_PASSWORD=your-password
 - **XSS protection**
 - **CSRF protection**
 
-## 📚 **Documentação Técnica**
+## 📚 **Technical Documentation**
 
 - **API Documentation**: `/api/schema/swagger-ui/`
 - **Admin Interface**: `/admin/`
 - **Health Check**: `/health/`
 - **Metrics**: `/metrics/` (Prometheus ready)
 
-## 🤝 **Contribuição**
+## 🧪 **Testing**
 
-1. Fork o repositório
-2. Crie uma branch para sua feature
-3. Implemente os testes
-4. Faça commit das mudanças
-5. Abra um Pull Request
+### Test Coverage
+- **Unit Tests**: Core functionality
+- **Integration Tests**: Complete workflows
+- **Performance Tests**: Load and stress testing
+- **Security Tests**: Vulnerability scanning
 
-## 📄 **Licença**
+### Running Tests
+```bash
+# Install test dependencies
+pip install -r requirements.txt
 
-Este projeto está sob licença MIT. Veja o arquivo LICENSE para mais detalhes.
+# Run tests with coverage
+pytest --cov=. --cov-report=html --cov-fail-under=85
+
+# Run specific test categories
+pytest tests/test_comprehensive.py::CacheManagerTestCase
+pytest tests/test_comprehensive.py::ScreeningSourceTestCase
+```
+
+## 🤝 **Contributing**
+
+1. Fork the repository
+2. Create a feature branch
+3. Implement tests
+4. Commit changes
+5. Open a Pull Request
+
+## 📄 **License**
+
+This project is licensed under the MIT License. See the LICENSE file for details.
 
 ---
 
-**Desenvolvido com ❤️ para compliance e gestão de riscos**
+**Developed with ❤️ for compliance and risk management**
 
