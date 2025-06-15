@@ -2,156 +2,181 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ main ]
-
-permissions:
-  contents: read
-  security-events: write
-  actions: read
+    branches: [ main, master ]
 
 env:
-  PYTHON_VERSION: '3.11'
   NODE_VERSION: '20'
-  PNPM_VERSION: '10.4.1'
+  PYTHON_VERSION: '3.11'
+  PNPM_VERSION: '8'
 
 jobs:
-  # Backend Tests (Simplified)
+  # Backend Testing
   backend-tests:
+    name: Backend Tests
     runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v4
-      
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      
-      - name: Basic Python check
+          
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpq-dev python3-dev gcc
+            
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements-dev.txt') }}
+          
+      - name: Install Python dependencies
         run: |
           cd backend
-          python --version
-          python -c "print('Python is working')"
-          echo "✅ Backend tests completed successfully"
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+          
+      - name: Run basic tests
+        run: |
+          cd backend
+          python -m pytest tests/ -v --tb=short
+          
+      - name: Run linting (non-blocking)
+        run: |
+          cd backend
+          flake8 . || echo "Linting warnings found but not blocking"
+          black --check . || echo "Code formatting issues found but not blocking"
 
-  # Frontend Tests (Simplified)
+  # Frontend Testing  
   frontend-tests:
+    name: Frontend Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: ${{ env.PNPM_VERSION }}
-      
-      - name: Set up Node.js
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-          cache-dependency-path: frontend/pnpm-lock.yaml
-      
+          
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          
+      - name: Cache pnpm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('frontend/pnpm-lock.yaml') }}
+          
       - name: Install dependencies
         run: |
           cd frontend
           pnpm install --frozen-lockfile
-      
-      - name: Basic Node check
+          
+      - name: Type checking
         run: |
           cd frontend
-          node --version
-          pnpm --version
-          echo "✅ Frontend tests completed successfully"
+          pnpm type-check
+          
+      - name: Run linting (non-blocking)
+        run: |
+          cd frontend
+          pnpm lint || echo "Linting warnings found but not blocking"
+          
+      - name: Run tests
+        run: |
+          cd frontend
+          pnpm test
 
-  # Security Scan (Minimal)
+  # Security Scan (Basic)
   security-scan:
+    name: Security Scan
     runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Basic security check
-        run: |
-          echo "🔍 Running basic security scan..."
-          echo "✅ Security scan completed"
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Run CodeQL Analysis
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript, python
+          
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+        
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
 
-  # Build Check (Minimal)
-  build-check:
-    runs-on: ubuntu-latest
+  # Build Validation
+  build-validation:
+    name: Build Validation
     needs: [backend-tests, frontend-tests]
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Build verification
-        run: |
-          echo "🏗️ Verifying build requirements..."
-          echo "✅ Build check completed"
-
-  # Deploy to Staging
-  deploy-staging:
     runs-on: ubuntu-latest
-    needs: [backend-tests, frontend-tests, build-check]
-    if: github.ref == 'refs/heads/develop'
-    environment:
-      name: staging
-      url: https://staging.ceres-system.com
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
     steps:
-      - uses: actions/checkout@v4
-      - name: Deploy to staging
-        run: |
-          echo "🚀 Deploying to staging environment..."
-          echo "✅ Staging deployment completed successfully"
-
-  # Deploy to Production
-  deploy-production:
-    runs-on: ubuntu-latest
-    needs: [backend-tests, frontend-tests, build-check]
-    if: github.ref == 'refs/heads/main'
-    environment:
-      name: production
-      url: https://ceres-system.com
-    steps:
-      - uses: actions/checkout@v4
-      - name: Deploy to production
-        run: |
-          echo "🚀 Deploying to production environment..."
-          echo "✅ Production deployment completed successfully"
-
-  # Create Release
-  create-release:
-    runs-on: ubuntu-latest
-    needs: [deploy-production]
-    if: github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release]')
-    steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          fetch-depth: 0
-      
-      - name: Get version
-        id: version
-        run: |
-          VERSION=$(grep -o '"version": "[^"]*"' frontend/package.json | cut -d'"' -f4 || echo "1.0.0")
-          echo "version=v$VERSION" >> $GITHUB_OUTPUT
-      
-      - name: Create Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          node-version: ${{ env.NODE_VERSION }}
+          
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
-          tag_name: ${{ steps.version.outputs.version }}
-          release_name: Release ${{ steps.version.outputs.version }}
-          body: |
-            ## Changes in this Release
-            - Pipeline successfully running
-            - All basic checks passing
-            
-            ## Installation
-            ```bash
-            git clone https://github.com/carlossilvatbh/CERES.git
-            cd CERES
-            # Follow installation instructions in README.md
-            ```
-          draft: false
-          prerelease: false
+          version: ${{ env.PNPM_VERSION }}
+          
+      - name: Build frontend
+        run: |
+          cd frontend
+          pnpm install --frozen-lockfile
+          pnpm build
+          
+      - name: Validate build artifacts
+        run: |
+          cd frontend
+          ls -la dist/
+          echo "Build completed successfully"
+          
+      - name: Basic health check
+        run: |
+          echo "All builds completed successfully"
+          echo "Frontend: Ready for deployment"
+          echo "Backend: Ready for deployment"
+
+  # Deployment Notification
+  notify-deployment:
+    name: Notify Deployment
+    needs: [build-validation, security-scan]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Notify success
+        if: needs.build-validation.result == 'success'
+        run: |
+          echo "✅ CERES pipeline completed successfully!"
+          echo "Frontend: https://ceres-five.vercel.app"
+          echo "Backend: Auto-deployed to Railway"
+          
+      - name: Notify failure
+        if: failure()
+        run: |
+          echo "❌ CERES pipeline failed!"
+          echo "Check the logs for details."
 
