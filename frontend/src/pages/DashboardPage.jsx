@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -15,31 +15,32 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 const DashboardPage = () => {
-  const [stats] = useState({
+  // Memoize static data to prevent unnecessary re-renders
+  const initialStats = useMemo(() => ({
     totalCustomers: 1247,
     pendingDocuments: 23,
     activeScreenings: 8,
     highRiskAlerts: 3,
     completedToday: 45,
     processingTime: '2.3min'
-  })
+  }), [])
 
-  const [chartData] = useState([
+  const chartData = useMemo(() => [
     { name: 'Jan', customers: 65, screenings: 45 },
     { name: 'Fev', customers: 78, screenings: 52 },
     { name: 'Mar', customers: 90, screenings: 67 },
     { name: 'Abr', customers: 81, screenings: 58 },
     { name: 'Mai', customers: 95, screenings: 72 },
     { name: 'Jun', customers: 112, screenings: 89 }
-  ])
+  ], [])
 
-  const [riskData] = useState([
+  const riskData = useMemo(() => [
     { name: 'Baixo Risco', value: 78, color: '#22c55e' },
     { name: 'Médio Risco', value: 18, color: '#f59e0b' },
     { name: 'Alto Risco', value: 4, color: '#ef4444' }
-  ])
+  ], [])
 
-  const [recentActivities] = useState([
+  const initialActivities = useMemo(() => [
     {
       id: 1,
       type: 'customer',
@@ -68,7 +69,150 @@ const DashboardPage = () => {
       time: '1 hora atrás',
       status: 'success'
     }
-  ])
+  ], [])
+
+  const [stats, setStats] = useState(initialStats)
+  const [recentActivities, setRecentActivities] = useState(initialActivities)
+  const [loading, setLoading] = useState(false)
+
+  // Memoized fetch function to prevent infinite re-renders
+  const fetchDashboardData = useCallback(async () => {
+    if (loading) return // Prevent multiple simultaneous requests
+    
+    setLoading(true)
+    try {
+      // Simulate API call - replace with actual API endpoint
+      const response = await fetch('/api/dashboard/stats')
+      if (response.ok) {
+        const data = await response.json()
+        setStats(prevStats => ({ ...prevStats, ...data.stats }))
+        setRecentActivities(data.activities || initialActivities)
+      }
+    } catch (error) {
+      console.error('Failed to fetch dashboard data:', error)
+      // Keep existing data on error
+    } finally {
+      setLoading(false)
+    }
+  }, [loading, initialActivities])
+
+  // Use effect with proper dependencies
+  useEffect(() => {
+    fetchDashboardData()
+    
+    // Set up periodic refresh (every 5 minutes)
+    const interval = setInterval(fetchDashboardData, 5 * 60 * 1000)
+    
+    return () => clearInterval(interval)
+  }, [fetchDashboardData])
+
+  // Memoized components to prevent unnecessary re-renders
+  const StatsCards = useMemo(() => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <Card className="glass-effect">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Total de Clientes</CardTitle>
+          <Users className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{stats.totalCustomers.toLocaleString()}</div>
+          <p className="text-xs text-muted-foreground">
+            <span className="text-green-600">+12%</span> em relação ao mês anterior
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card className="glass-effect">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Documentos Pendentes</CardTitle>
+          <FileText className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{stats.pendingDocuments}</div>
+          <p className="text-xs text-muted-foreground">
+            <span className="text-orange-600">-5%</span> em relação a ontem
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card className="glass-effect">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Screenings Ativos</CardTitle>
+          <Shield className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{stats.activeScreenings}</div>
+          <p className="text-xs text-muted-foreground">
+            Em processamento
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card className="glass-effect">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Alertas de Alto Risco</CardTitle>
+          <AlertTriangle className="h-4 w-4 text-destructive" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold text-destructive">{stats.highRiskAlerts}</div>
+          <p className="text-xs text-muted-foreground">
+            Requer atenção imediata
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  ), [stats])
+
+  const Charts = useMemo(() => (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <Card className="glass-effect">
+        <CardHeader>
+          <CardTitle>Atividade Mensal</CardTitle>
+          <CardDescription>Clientes cadastrados e screenings realizados</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="customers" fill="oklch(0.35 0.15 240)" name="Clientes" />
+              <Bar dataKey="screenings" fill="oklch(0.25 0.18 45)" name="Screenings" />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      <Card className="glass-effect">
+        <CardHeader>
+          <CardTitle>Distribuição de Risco</CardTitle>
+          <CardDescription>Classificação dos clientes por nível de risco</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={riskData}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {riskData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+    </div>
+  ), [chartData, riskData])
 
   return (
     <div className="space-y-6">
@@ -78,109 +222,10 @@ const DashboardPage = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="glass-effect">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Clientes</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalCustomers.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+12%</span> em relação ao mês anterior
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="glass-effect">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Documentos Pendentes</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.pendingDocuments}</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-orange-600">-5%</span> em relação a ontem
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="glass-effect">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Screenings Ativos</CardTitle>
-            <Shield className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.activeScreenings}</div>
-            <p className="text-xs text-muted-foreground">
-              Em processamento
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="glass-effect">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Alertas de Alto Risco</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-destructive" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-destructive">{stats.highRiskAlerts}</div>
-            <p className="text-xs text-muted-foreground">
-              Requer atenção imediata
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      {StatsCards}
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="glass-effect">
-          <CardHeader>
-            <CardTitle>Atividade Mensal</CardTitle>
-            <CardDescription>Clientes cadastrados e screenings realizados</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="customers" fill="oklch(0.35 0.15 240)" name="Clientes" />
-                <Bar dataKey="screenings" fill="oklch(0.25 0.18 45)" name="Screenings" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card className="glass-effect">
-          <CardHeader>
-            <CardTitle>Distribuição de Risco</CardTitle>
-            <CardDescription>Classificação dos clientes por nível de risco</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={riskData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {riskData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+      {Charts}
 
       {/* Recent Activities and Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

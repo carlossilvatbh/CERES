@@ -1,15 +1,29 @@
 [variables]
-NIXPACKS_PYTHON_VERSION = "3.11"
+NIXPACKS_PYTHON_VERSION = "3.12"
 
 [phases.setup]
-nixPkgs = ["python311", "python311Packages.pip"]
+nixPkgs = [
+    "python312", 
+    "python312Packages.pip",
+    "postgresql",
+    "tesseract",
+    "poppler_utils",
+    "imagemagick",
+    "redis"
+]
 
 [phases.install]
-cmds = ["cd backend && pip install --break-system-packages -r requirements.txt"]
+cmds = [
+    "cd backend",
+    "pip install -r requirements.txt"
+]
 
 [phases.build]
-cmds = ["cd backend && python manage.py collectstatic --noinput"]
+cmds = [
+    "cd backend",
+    "python manage.py collectstatic --noinput"
+]
 
 [start]
-cmd = "cd backend && python manage.py migrate && python manage.py runserver 0.0.0.0:$PORT"
+cmd = "cd backend && gunicorn ceres_project.wsgi --bind 0.0.0.0:$PORT --workers 2 --timeout 30"
 

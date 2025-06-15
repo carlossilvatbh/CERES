@@ -263,15 +263,21 @@ async def perform_screening_async(customer, query_name, sources):
                 if not source:
                     continue
                 
-                if source_result.get('success') and source_result.get('matches'):
-                    for match in source_result['matches']:
-                        # Create screening result
+                # Use dict.get() with fallback to prevent KeyError
+                if source_result.get('success', False) and source_result.get('matches'):
+                    matches = source_result.get('matches', [])
+                    if not matches:
+                        logger.warning(f"No matches returned from {source_code}")
+                        continue
+                        
+                    for match in matches:
+                        # Create screening result with safe dict access
                         result = ScreeningResult.objects.create(
                             customer=customer,
                             source=source,
                             query_name=query_name,
                             match_found=True,
-                            match_type='fuzzy',  # This would be determined by the matching algorithm
+                            match_type=match.get('match_type', 'fuzzy'),
                             confidence_score=match.get('confidence', 0),
                             matched_name=match.get('name', ''),
                             matched_entity_id=match.get('entity_id', ''),
@@ -298,6 +304,8 @@ async def perform_screening_async(customer, query_name, sources):
                     
             except Exception as e:
                 logger.error(f"Failed to process screening result for source {source_code}: {e}")
+                # Continue processing other sources instead of failing completely
+                continue
     
     return results
 
