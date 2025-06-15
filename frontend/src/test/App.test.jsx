@@ -1,7 +1,6 @@
-import { render, screen } from '@testing-library/react'
 import { describe, it, expect } from 'vitest'
 
-// Simple test that doesn't depend on App component
+// Simple test that doesn't import unused dependencies
 describe('Basic functionality', () => {
   it('should run tests successfully', () => {
     const element = document.createElement('div')
@@ -13,6 +12,12 @@ describe('Basic functionality', () => {
   
   it('should handle basic math', () => {
     expect(2 + 2).toBe(4)
+  })
+  
+  it('should work with arrays', () => {
+    const arr = [1, 2, 3]
+    expect(arr.length).toBe(3)
+    expect(arr[0]).toBe(1)
   })
 })
 

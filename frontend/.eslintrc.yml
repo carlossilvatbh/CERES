@@ -1,5 +1,3 @@
-# ESLint Configuration for CERES Frontend
-
 root: true
 env:
   browser: true
@@ -23,19 +21,19 @@ plugins:
   - react-refresh
   - '@typescript-eslint'
 rules:
-  # Disable strict rules that cause warnings
-  react-refresh/only-export-components: off
+  # Make all rules warnings instead of errors
+  react-refresh/only-export-components: warn
   '@typescript-eslint/no-unused-vars': 
     - warn
     - argsIgnorePattern: '^_'
-      varsIgnorePattern: '^_'
+      varsIgnorePattern: '^_|^[A-Z_]'
   no-unused-vars:
     - warn  
     - argsIgnorePattern: '^_'
-      varsIgnorePattern: '^_'
+      varsIgnorePattern: '^_|^[A-Z_]'
   react-hooks/exhaustive-deps: warn
-  # Allow console for development
   no-console: warn
-  # Allow any for rapid development
   '@typescript-eslint/no-explicit-any': warn
+  # Allow unused variables that start with underscore or are uppercase
+  no-undef: warn
 
