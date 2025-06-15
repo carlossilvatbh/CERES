@@ -25,6 +25,9 @@ django-filter==24.2
 django-redis==5.4.0
 redis==5.0.1
 
+# Django Extensions
+django-extensions==3.2.3
+
 # Basic utilities
 requests==2.31.0
 
