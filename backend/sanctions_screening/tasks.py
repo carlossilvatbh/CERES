@@ -1,7 +1,8 @@
 """
 Celery tasks for sanctions screening
 """
-from celery import shared_task
+# Temporarily disable Celery imports for Railway deployment
+# from celery import shared_task
 from django.utils import timezone
 from django.db import transaction
 import asyncio
@@ -13,8 +14,14 @@ from customer_enrollment.models import Customer
 
 logger = logging.getLogger('ceres')
 
-@shared_task(bind=True, max_retries=3)
-def screen_customer(self, customer_id, source_codes=None, force_refresh=False):
+# Temporary decorator to replace @shared_task
+def shared_task(*args, **kwargs):
+    def decorator(func):
+        return func
+    return decorator
+
+# @shared_task(bind=True, max_retries=3)
+def screen_customer(customer_id, source_codes=None, force_refresh=False):
     """
     Screen a single customer against sanctions lists
     """
@@ -67,7 +74,7 @@ def screen_customer(self, customer_id, source_codes=None, force_refresh=False):
         for result in results:
             if result.confidence_score >= 90:
                 high_risk_matches += 1
-                create_screening_alert.delay(result.id)
+                create_screening_alert(result.id)
         
         logger.info(f"Screening completed for customer {customer_id}: {len(results)} results, {high_risk_matches} high-risk matches")
         
@@ -86,10 +93,12 @@ def screen_customer(self, customer_id, source_codes=None, force_refresh=False):
         }
     except Exception as e:
         logger.error(f"Screening failed for customer {customer_id}: {e}")
-        # Retry the task
-        raise self.retry(exc=e, countdown=60 * (self.request.retries + 1))
+        return {
+            'success': False,
+            'error': str(e)
+        }
 
-@shared_task
+# @shared_task
 def batch_screen_customers(batch_id):
     """
     Process a batch screening operation
@@ -112,7 +121,7 @@ def batch_screen_customers(batch_id):
         # Process each customer
         for customer in customers:
             try:
-                result = screen_customer.delay(
+                result = screen_customer(
                     str(customer.id),
                     source_codes=source_codes,
                     force_refresh=True
@@ -144,7 +153,7 @@ def batch_screen_customers(batch_id):
         except:
             pass
 
-@shared_task
+# @shared_task
 def create_screening_alert(screening_result_id):
     """
     Create an alert for a high-risk screening match
@@ -202,7 +211,7 @@ def create_screening_alert(screening_result_id):
             'error': str(e)
         }
 
-@shared_task
+# @shared_task
 def update_screening_sources():
     """
     Update screening sources data (periodic task)
