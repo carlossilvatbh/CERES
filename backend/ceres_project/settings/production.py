@@ -18,7 +18,9 @@ ALLOWED_HOSTS = [
     '.railway.app',
     '.up.railway.app',
     '.onrender.com',
-    '*',  # Temporary for debugging
+    'localhost',
+    '127.0.0.1',
+    '*',  # Temporary for debugging - remove in final production
 ]
 
 # Database for production - PostgreSQL required

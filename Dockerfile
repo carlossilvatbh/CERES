@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     postgresql-client \
     libpq-dev \
     gcc \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Upgrade pip
@@ -30,9 +31,15 @@ COPY backend/ /app/
 # Create necessary directories
 RUN mkdir -p /app/staticfiles /app/media
 
+# Collect static files
+RUN python manage.py collectstatic --noinput --settings=ceres_project.settings.production || true
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:$PORT/health/ || exit 1
+
 # Expose port (Railway will set PORT environment variable)
 EXPOSE $PORT
 
 # Run gunicorn with Railway's PORT variable
-CMD gunicorn ceres_project.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 30
-
+CMD ["sh", "-c", "python manage.py migrate --settings=ceres_project.settings.production && gunicorn ceres_project.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 60 --log-level info"]
