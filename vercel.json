@@ -1,0 +1,12 @@
+{
+  "rootDirectory": "frontend",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://ceres-production-8d0c.up.railway.app/api/$1"
+    }
+  ]
+}
