@@ -26,6 +26,7 @@ urlpatterns = [
     
     # Health check endpoint
     path('api/health/', include('ceres_project.health_urls')),
+    path('healthz/', include('ceres_project.health_urls')),  # Railway standard endpoint
     
     # Authentication endpoints
     path('api/auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),

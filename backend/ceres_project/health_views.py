@@ -1,7 +1,12 @@
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
+from django.db import connection
+from django.core.cache import cache
+from django.conf import settings
 import json
+import datetime
+
 
 @csrf_exempt
 @require_http_methods(["GET"])
@@ -9,15 +14,47 @@ def health_check(request):
     """
     Health check endpoint for monitoring system status
     """
-    return JsonResponse({
-        "status": "healthy",
+    status = "healthy"
+    checks = {}
+    
+    # Database check
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            checks["database"] = "connected"
+    except Exception as e:
+        checks["database"] = f"error: {str(e)}"
+        status = "unhealthy"
+    
+    # Cache check
+    try:
+        cache.set("health_check", "test", 30)
+        if cache.get("health_check") == "test":
+            checks["cache"] = "connected"
+        else:
+            checks["cache"] = "error: cache not working"
+            status = "unhealthy"
+    except Exception as e:
+        checks["cache"] = f"error: {str(e)}"
+        status = "unhealthy"
+    
+    # Environment check
+    environment = "production"
+    if settings.DEBUG:
+        environment = "development"
+    
+    response_data = {
+        "status": status,
         "service": "CERES Backend API",
         "version": "1.0.0",
-        "timestamp": "2025-06-14T07:00:00Z",
-        "environment": "development",
-        "database": "connected",
-        "cache": "connected"
-    })
+        "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+        "environment": environment,
+        "checks": checks
+    }
+    
+    status_code = 200 if status == "healthy" else 503
+    return JsonResponse(response_data, status=status_code)
+
 
 @csrf_exempt
 @require_http_methods(["GET"])
