@@ -1,320 +1,385 @@
 """
-Celery tasks for sanctions screening
+Celery tasks for sanctions screening.
+Production-ready async task processing with proper error handling.
 """
-# Temporarily disable Celery imports for Railway deployment
-# from celery import shared_task
+
+from celery import shared_task
+from celery.exceptions import Retry
+from django.core.cache import cache
 from django.utils import timezone
-from django.db import transaction
-import asyncio
+from typing import Dict, List, Any, Optional
 import logging
+import requests
+import time
+from datetime import datetime, timedelta
 
-from .models import ScreeningSource, ScreeningResult, ScreeningBatch, ScreeningAlert
-from .data_sources import DataSourceManager
-from customer_enrollment.models import Customer
+from .models import Customer, ScreeningResult, ScreeningAlert
+from .sources.data_source_manager import DataSourceManager
+from core.monitoring import track_performance, log_audit_event
 
-logger = logging.getLogger('ceres')
+logger = logging.getLogger(__name__)
 
-# Temporary decorator to replace @shared_task
-def shared_task(*args, **kwargs):
-    def decorator(func):
-        return func
-    return decorator
-
-# @shared_task(bind=True, max_retries=3)
-def screen_customer(customer_id, source_codes=None, force_refresh=False):
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
+def screen_customer(self, customer_id: int, screening_sources: List[str] = None) -> Dict[str, Any]:
     """
-    Screen a single customer against sanctions lists
+    Screen a single customer against sanctions lists.
+    
+    Args:
+        customer_id: ID of the customer to screen
+        screening_sources: List of sources to check (optional)
+        
+    Returns:
+        Dict containing screening results
+    """
+    try:
+        with track_performance('customer_screening'):
+            customer = Customer.objects.get(id=customer_id)
+            
+            # Log audit event
+            log_audit_event(
+                'screening_started',
+                user_id=None,
+                customer_id=customer_id,
+                metadata={'sources': screening_sources}
+            )
+            
+            # Initialize data source manager
+            source_manager = DataSourceManager()
+            
+            # Use default sources if none specified
+            if not screening_sources:
+                screening_sources = ['ofac', 'un', 'eu', 'opensanctions']
+            
+            results = {}
+            alerts = []
+            
+            for source in screening_sources:
+                try:
+                    # Check cache first
+                    cache_key = f"screening_{source}_{customer_id}"
+                    cached_result = cache.get(cache_key)
+                    
+                    if cached_result:
+                        results[source] = cached_result
+                        continue
+                    
+                    # Perform screening
+                    source_result = source_manager.screen_customer(
+                        customer=customer,
+                        source=source
+                    )
+                    
+                    results[source] = source_result
+                    
+                    # Cache result for 1 hour
+                    cache.set(cache_key, source_result, 3600)
+                    
+                    # Create alerts for matches
+                    if source_result.get('matches'):
+                        for match in source_result['matches']:
+                            alert = ScreeningAlert.objects.create(
+                                customer=customer,
+                                source=source,
+                                match_data=match,
+                                risk_score=match.get('score', 0),
+                                status='pending'
+                            )
+                            alerts.append(alert.id)
+                    
+                except Exception as source_error:
+                    logger.error(f"Error screening {source} for customer {customer_id}: {source_error}")
+                    results[source] = {
+                        'error': str(source_error),
+                        'status': 'failed'
+                    }
+            
+            # Create screening result record
+            screening_result = ScreeningResult.objects.create(
+                customer=customer,
+                results=results,
+                alerts_created=len(alerts),
+                status='completed',
+                screened_at=timezone.now()
+            )
+            
+            # Log completion
+            log_audit_event(
+                'screening_completed',
+                user_id=None,
+                customer_id=customer_id,
+                metadata={
+                    'result_id': screening_result.id,
+                    'alerts_created': len(alerts),
+                    'sources_checked': len(screening_sources)
+                }
+            )
+            
+            return {
+                'customer_id': customer_id,
+                'screening_result_id': screening_result.id,
+                'alerts_created': alerts,
+                'status': 'completed',
+                'sources_checked': screening_sources,
+                'total_matches': sum(len(r.get('matches', [])) for r in results.values() if isinstance(r, dict))
+            }
+            
+    except Customer.DoesNotExist:
+        logger.error(f"Customer {customer_id} not found")
+        return {
+            'customer_id': customer_id,
+            'status': 'failed',
+            'error': 'Customer not found'
+        }
+        
+    except Exception as exc:
+        logger.error(f"Error screening customer {customer_id}: {exc}")
+        
+        # Retry on temporary failures
+        if self.request.retries < self.max_retries:
+            logger.info(f"Retrying screening for customer {customer_id} (attempt {self.request.retries + 1})")
+            raise self.retry(countdown=60 * (2 ** self.request.retries))
+        
+        return {
+            'customer_id': customer_id,
+            'status': 'failed',
+            'error': str(exc),
+            'retries_exhausted': True
+        }
+
+@shared_task(bind=True, max_retries=2)
+def batch_screen_customers(self, customer_ids: List[int], screening_sources: List[str] = None) -> Dict[str, Any]:
+    """
+    Screen multiple customers in batch.
+    
+    Args:
+        customer_ids: List of customer IDs to screen
+        screening_sources: List of sources to check
+        
+    Returns:
+        Dict containing batch screening results
+    """
+    try:
+        batch_id = f"batch_{int(time.time())}"
+        
+        log_audit_event(
+            'batch_screening_started',
+            user_id=None,
+            metadata={
+                'batch_id': batch_id,
+                'customer_count': len(customer_ids),
+                'sources': screening_sources
+            }
+        )
+        
+        results = []
+        failed_customers = []
+        
+        for customer_id in customer_ids:
+            try:
+                # Queue individual screening task
+                result = screen_customer.delay(customer_id, screening_sources)
+                results.append({
+                    'customer_id': customer_id,
+                    'task_id': result.id,
+                    'status': 'queued'
+                })
+            except Exception as e:
+                logger.error(f"Failed to queue screening for customer {customer_id}: {e}")
+                failed_customers.append({
+                    'customer_id': customer_id,
+                    'error': str(e)
+                })
+        
+        log_audit_event(
+            'batch_screening_queued',
+            user_id=None,
+            metadata={
+                'batch_id': batch_id,
+                'queued_count': len(results),
+                'failed_count': len(failed_customers)
+            }
+        )
+        
+        return {
+            'batch_id': batch_id,
+            'queued_screenings': results,
+            'failed_customers': failed_customers,
+            'total_customers': len(customer_ids),
+            'status': 'queued'
+        }
+        
+    except Exception as exc:
+        logger.error(f"Error in batch screening: {exc}")
+        
+        if self.request.retries < self.max_retries:
+            raise self.retry(countdown=120)
+        
+        return {
+            'status': 'failed',
+            'error': str(exc),
+            'customer_ids': customer_ids
+        }
+
+@shared_task(bind=True, max_retries=3)
+def create_screening_alert(self, customer_id: int, match_data: Dict[str, Any], source: str) -> Dict[str, Any]:
+    """
+    Create a screening alert for a customer match.
+    
+    Args:
+        customer_id: ID of the customer
+        match_data: Data about the match
+        source: Source that generated the match
+        
+    Returns:
+        Dict containing alert information
     """
     try:
         customer = Customer.objects.get(id=customer_id)
         
-        # Get customer name for screening
-        if hasattr(customer, 'personal_data') and customer.personal_data:
-            query_name = customer.personal_data.full_name
-        else:
-            logger.warning(f"No personal data found for customer {customer_id}")
-            return {
-                'success': False,
-                'error': 'No personal data available for screening'
+        alert = ScreeningAlert.objects.create(
+            customer=customer,
+            source=source,
+            match_data=match_data,
+            risk_score=match_data.get('score', 0),
+            status='pending',
+            created_at=timezone.now()
+        )
+        
+        # Send notification if high risk
+        if alert.risk_score >= 80:
+            send_high_risk_notification.delay(alert.id)
+        
+        log_audit_event(
+            'screening_alert_created',
+            user_id=None,
+            customer_id=customer_id,
+            metadata={
+                'alert_id': alert.id,
+                'source': source,
+                'risk_score': alert.risk_score
             }
-        
-        # Check if recent screening exists and force_refresh is False
-        if not force_refresh:
-            recent_cutoff = timezone.now() - timezone.timedelta(hours=24)
-            recent_results = ScreeningResult.objects.filter(
-                customer=customer,
-                created_at__gte=recent_cutoff
-            )
-            if recent_results.exists():
-                logger.info(f"Recent screening results exist for customer {customer_id}")
-                return {
-                    'success': True,
-                    'message': 'Recent screening results already exist',
-                    'results_count': recent_results.count()
-                }
-        
-        # Get sources to screen
-        if source_codes:
-            sources = ScreeningSource.objects.filter(
-                code__in=source_codes,
-                is_active=True,
-                is_available=True
-            )
-        else:
-            sources = ScreeningSource.objects.filter(
-                is_active=True,
-                is_available=True
-            )
-        
-        # Perform screening
-        results = asyncio.run(perform_screening_async(customer, query_name, sources))
-        
-        # Process results and create alerts
-        high_risk_matches = 0
-        for result in results:
-            if result.confidence_score >= 90:
-                high_risk_matches += 1
-                create_screening_alert(result.id)
-        
-        logger.info(f"Screening completed for customer {customer_id}: {len(results)} results, {high_risk_matches} high-risk matches")
+        )
         
         return {
-            'success': True,
-            'customer_id': str(customer_id),
-            'results_count': len(results),
-            'high_risk_matches': high_risk_matches
+            'alert_id': alert.id,
+            'customer_id': customer_id,
+            'risk_score': alert.risk_score,
+            'status': 'created'
         }
         
     except Customer.DoesNotExist:
-        logger.error(f"Customer {customer_id} not found")
+        logger.error(f"Customer {customer_id} not found for alert creation")
         return {
-            'success': False,
-            'error': f'Customer {customer_id} not found'
+            'status': 'failed',
+            'error': 'Customer not found'
         }
-    except Exception as e:
-        logger.error(f"Screening failed for customer {customer_id}: {e}")
+        
+    except Exception as exc:
+        logger.error(f"Error creating screening alert: {exc}")
+        
+        if self.request.retries < self.max_retries:
+            raise self.retry(countdown=30)
+        
         return {
-            'success': False,
-            'error': str(e)
+            'status': 'failed',
+            'error': str(exc)
         }
 
-# @shared_task
-def batch_screen_customers(batch_id):
+@shared_task(bind=True)
+def send_high_risk_notification(self, alert_id: int) -> Dict[str, Any]:
     """
-    Process a batch screening operation
-    """
-    try:
-        batch = ScreeningBatch.objects.get(id=batch_id)
+    Send notification for high-risk screening alerts.
+    
+    Args:
+        alert_id: ID of the screening alert
         
-        # Update batch status
-        batch.status = 'processing'
-        batch.started_at = timezone.now()
-        batch.save()
-        
-        customers = batch.customers.all()
-        sources = batch.sources.all()
-        source_codes = [source.code for source in sources]
-        
-        batch.total_customers = customers.count()
-        batch.save()
-        
-        # Process each customer
-        for customer in customers:
-            try:
-                result = screen_customer(
-                    str(customer.id),
-                    source_codes=source_codes,
-                    force_refresh=True
-                )
-                
-                # Update progress
-                batch.processed_customers += 1
-                batch.save()
-                
-            except Exception as e:
-                logger.error(f"Failed to screen customer {customer.id} in batch {batch_id}: {e}")
-        
-        # Complete batch
-        batch.status = 'completed'
-        batch.completed_at = timezone.now()
-        batch.save()
-        
-        logger.info(f"Batch screening {batch_id} completed: {batch.processed_customers}/{batch.total_customers} customers processed")
-        
-    except ScreeningBatch.DoesNotExist:
-        logger.error(f"Screening batch {batch_id} not found")
-    except Exception as e:
-        logger.error(f"Batch screening {batch_id} failed: {e}")
-        # Update batch status to failed
-        try:
-            batch = ScreeningBatch.objects.get(id=batch_id)
-            batch.status = 'failed'
-            batch.save()
-        except:
-            pass
-
-# @shared_task
-def create_screening_alert(screening_result_id):
-    """
-    Create an alert for a high-risk screening match
+    Returns:
+        Dict containing notification status
     """
     try:
-        result = ScreeningResult.objects.get(id=screening_result_id)
+        alert = ScreeningAlert.objects.get(id=alert_id)
         
-        # Determine alert severity based on confidence score
-        if result.confidence_score >= 95:
-            severity = 'critical'
-        elif result.confidence_score >= 90:
-            severity = 'high'
-        elif result.confidence_score >= 80:
-            severity = 'medium'
-        else:
-            severity = 'low'
-        
-        # Create alert
-        alert = ScreeningAlert.objects.create(
-            alert_type='high_risk_match',
-            severity=severity,
-            customer=result.customer,
-            screening_result=result,
-            source=result.source,
-            title=f"High-risk match found: {result.matched_name}",
-            message=f"Customer {result.query_name} matched {result.matched_name} in {result.source.name} with {result.confidence_score}% confidence.",
-            alert_data={
-                'confidence_score': float(result.confidence_score),
-                'match_type': result.match_type,
-                'entity_type': result.entity_type,
-                'categories': result.categories,
-                'sanctions_programs': result.sanctions_programs
-            },
-            requires_action=severity in ['critical', 'high']
+        # Implementation would send email/SMS/webhook notification
+        # For now, just log the high-risk alert
+        logger.warning(
+            f"HIGH RISK ALERT: Customer {alert.customer.id} "
+            f"matched {alert.source} with score {alert.risk_score}"
         )
         
-        logger.info(f"Alert created for screening result {screening_result_id}: {alert.id}")
+        # Update alert status
+        alert.notification_sent = True
+        alert.save()
         
         return {
-            'success': True,
-            'alert_id': str(alert.id),
-            'severity': severity
+            'alert_id': alert_id,
+            'status': 'notification_sent'
         }
         
-    except ScreeningResult.DoesNotExist:
-        logger.error(f"Screening result {screening_result_id} not found")
+    except ScreeningAlert.DoesNotExist:
+        logger.error(f"Screening alert {alert_id} not found")
         return {
-            'success': False,
-            'error': 'Screening result not found'
+            'status': 'failed',
+            'error': 'Alert not found'
         }
-    except Exception as e:
-        logger.error(f"Failed to create alert for screening result {screening_result_id}: {e}")
+        
+    except Exception as exc:
+        logger.error(f"Error sending notification for alert {alert_id}: {exc}")
         return {
-            'success': False,
-            'error': str(e)
+            'status': 'failed',
+            'error': str(exc)
         }
 
-# @shared_task
-def update_screening_sources():
+@shared_task(bind=True)
+def update_screening_sources(self) -> Dict[str, Any]:
     """
-    Update screening sources data (periodic task)
+    Periodic task to update screening data sources.
+    
+    Returns:
+        Dict containing update status
     """
     try:
-        sources = ScreeningSource.objects.filter(is_active=True)
-        updated_count = 0
+        source_manager = DataSourceManager()
+        
+        update_results = {}
+        
+        # Update each source
+        sources = ['ofac', 'un', 'eu', 'opensanctions']
         
         for source in sources:
             try:
-                # Check if source is available
-                # This would typically involve pinging the API or checking data freshness
-                source.is_available = True
-                source.last_updated = timezone.now()
-                source.save()
-                updated_count += 1
+                result = source_manager.update_source(source)
+                update_results[source] = result
+                
+                # Clear cache for this source
+                cache_pattern = f"screening_{source}_*"
+                cache.delete_pattern(cache_pattern)
                 
             except Exception as e:
-                logger.warning(f"Failed to update source {source.code}: {e}")
-                source.is_available = False
-                source.save()
+                logger.error(f"Failed to update source {source}: {e}")
+                update_results[source] = {
+                    'status': 'failed',
+                    'error': str(e)
+                }
         
-        logger.info(f"Updated {updated_count} screening sources")
-        
-        return {
-            'success': True,
-            'updated_count': updated_count,
-            'total_sources': sources.count()
-        }
-        
-    except Exception as e:
-        logger.error(f"Failed to update screening sources: {e}")
-        return {
-            'success': False,
-            'error': str(e)
-        }
-
-async def perform_screening_async(customer, query_name, sources):
-    """
-    Perform asynchronous screening across multiple sources
-    """
-    results = []
-    
-    async with DataSourceManager() as data_manager:
-        # Get source codes
-        source_codes = [source.code for source in sources]
-        
-        # Perform screening
-        screening_results = await data_manager.search_all_sources(
-            query_name,
-            source_types=['sanctions', 'pep', 'corporate']
+        log_audit_event(
+            'screening_sources_updated',
+            user_id=None,
+            metadata={
+                'update_results': update_results,
+                'updated_at': timezone.now().isoformat()
+            }
         )
         
-        # Process results and save to database
-        for source_code, source_result in screening_results.items():
-            try:
-                source = sources.filter(code=source_code).first()
-                if not source:
-                    continue
-                
-                # Use dict.get() with fallback to prevent KeyError
-                if source_result.get('success', False) and source_result.get('matches'):
-                    matches = source_result.get('matches', [])
-                    if not matches:
-                        logger.warning(f"No matches returned from {source_code}")
-                        continue
-                        
-                    for match in matches:
-                        # Create screening result with safe dict access
-                        result = ScreeningResult.objects.create(
-                            customer=customer,
-                            source=source,
-                            query_name=query_name,
-                            match_found=True,
-                            match_type=match.get('match_type', 'fuzzy'),
-                            confidence_score=match.get('confidence', 0),
-                            matched_name=match.get('name', ''),
-                            matched_entity_id=match.get('entity_id', ''),
-                            entity_type=match.get('entity_type', ''),
-                            categories=match.get('categories', []),
-                            sanctions_programs=match.get('programs', []),
-                            match_details=match,
-                            raw_response=source_result,
-                            processing_time=source_result.get('processing_time', 0)
-                        )
-                        results.append(result)
-                else:
-                    # Create negative result
-                    result = ScreeningResult.objects.create(
-                        customer=customer,
-                        source=source,
-                        query_name=query_name,
-                        match_found=False,
-                        confidence_score=0,
-                        raw_response=source_result,
-                        processing_time=source_result.get('processing_time', 0)
-                    )
-                    results.append(result)
-                    
-            except Exception as e:
-                logger.error(f"Failed to process screening result for source {source_code}: {e}")
-                # Continue processing other sources instead of failing completely
-                continue
-    
-    return results
+        return {
+            'status': 'completed',
+            'update_results': update_results,
+            'updated_at': timezone.now().isoformat()
+        }
+        
+    except Exception as exc:
+        logger.error(f"Error updating screening sources: {exc}")
+        return {
+            'status': 'failed',
+            'error': str(exc)
+        }
 

@@ -1,0 +1,36 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "import": "Import"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "customers": "Customer Enrollment",
+    "documents": "Documents",
+    "screening": "Screening",
+    "reports": "Reports",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Compliance system overview",
+    "totalCustomers": "Total Customers",
+    "pendingDocuments": "Pending Documents",
+    "activeScreenings": "Active Screenings",
+    "highRiskAlerts": "High Risk Alerts",
+    "monthlyActivity": "Monthly Activity",
+    "riskDistribution": "Risk Distribution",
+    "recentActivities": "Recent Activities",
+    "quickActions": "Quick Actions"
+  }
+}

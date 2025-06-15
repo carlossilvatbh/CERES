@@ -1,6 +1,8 @@
 """
-Celery configuration for CERES project - Railway optimized
+Celery configuration for CERES project.
+Production-ready async task processing.
 """
+
 import os
 from celery import Celery
 from django.conf import settings
@@ -17,83 +19,65 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 # Load task modules from all registered Django apps.
 app.autodiscover_tasks()
 
-# Railway-optimized Celery configuration
+# Celery configuration
 app.conf.update(
     # Task routing
     task_routes={
-        'sanctions_screening.*': {'queue': 'screening'},
-        'document_processing.*': {'queue': 'documents'},
-        'risk_assessment.*': {'queue': 'risk'},
-        'case_management.*': {'queue': 'cases'},
+        'sanctions_screening.tasks.*': {'queue': 'screening'},
+        'document_processing.tasks.*': {'queue': 'documents'},
+        'risk_assessment.tasks.*': {'queue': 'risk'},
+        'case_management.tasks.*': {'queue': 'cases'},
     },
     
-    # Worker configuration
-    worker_prefetch_multiplier=1,
-    task_acks_late=True,
-    worker_max_tasks_per_child=1000,
-    
     # Task execution
-    task_soft_time_limit=300,  # 5 minutes
-    task_time_limit=600,       # 10 minutes
-    task_reject_on_worker_lost=True,
+    task_serializer='json',
+    accept_content=['json'],
+    result_serializer='json',
+    timezone='UTC',
+    enable_utc=True,
     
-    # Result backend
+    # Task result backend
+    result_backend=settings.CELERY_RESULT_BACKEND,
     result_expires=3600,  # 1 hour
-    result_persistent=True,
     
-    # Error handling
-    task_annotations={
-        '*': {'rate_limit': '10/s'}
+    # Task execution settings
+    task_always_eager=False,
+    task_eager_propagates=True,
+    task_ignore_result=False,
+    task_store_eager_result=True,
+    
+    # Worker settings
+    worker_prefetch_multiplier=1,
+    worker_max_tasks_per_child=1000,
+    worker_disable_rate_limits=False,
+    
+    # Monitoring
+    worker_send_task_events=True,
+    task_send_sent_event=True,
+    
+    # Security
+    task_reject_on_worker_lost=True,
+    task_acks_late=True,
+    
+    # Beat schedule for periodic tasks
+    beat_schedule={
+        'update-screening-sources': {
+            'task': 'sanctions_screening.tasks.update_screening_sources',
+            'schedule': 3600.0,  # Every hour
+        },
+        'cleanup-old-results': {
+            'task': 'core.tasks.cleanup_old_results',
+            'schedule': 86400.0,  # Daily
+        },
+        'generate-daily-reports': {
+            'task': 'case_management.tasks.generate_daily_reports',
+            'schedule': 86400.0,  # Daily at midnight
+        },
     },
 )
 
-# Celery beat schedule for periodic tasks
-app.conf.beat_schedule = {
-    'update-screening-sources': {
-        'task': 'sanctions_screening.tasks.update_screening_sources',
-        'schedule': 3600.0,  # Run every hour
-        'options': {'queue': 'screening'}
-    },
-    'process-pending-documents': {
-        'task': 'document_processing.tasks.process_pending_documents',
-        'schedule': 300.0,  # Run every 5 minutes
-        'options': {'queue': 'documents'}
-    },
-    'cleanup-expired-sessions': {
-        'task': 'customer_enrollment.tasks.cleanup_expired_sessions',
-        'schedule': 86400.0,  # Run daily
-        'options': {'queue': 'cases'}
-    },
-    'generate-compliance-reports': {
-        'task': 'case_management.tasks.generate_compliance_reports',
-        'schedule': 86400.0,  # Run daily
-        'options': {'queue': 'cases'}
-    },
-    'health-check': {
-        'task': 'ceres_project.tasks.health_check',
-        'schedule': 60.0,  # Run every minute
-        'options': {'queue': 'default'}
-    },
-}
-
-app.conf.timezone = 'UTC'
-
 @app.task(bind=True)
 def debug_task(self):
+    """Debug task for testing Celery configuration."""
     print(f'Request: {self.request!r}')
 
-@app.task(bind=True, name='ceres_project.tasks.health_check')
-def health_check(self):
-    """Health check task for monitoring"""
-    from django.utils import timezone
-    return {'status': 'healthy', 'timestamp': str(timezone.now())}
-
-# Error handling
-@app.task(bind=True)
-def handle_task_failure(self, task_id, error, traceback):
-    """Handle task failures"""
-    from django.core.mail import mail_admins
-    mail_admins(
-        f'Celery Task Failed: {task_id}',
-        f'Error: {error}\nTraceback: {traceback}'
-    )

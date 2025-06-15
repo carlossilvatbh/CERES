@@ -1,335 +1,442 @@
-# Contribuindo para o CERES
+# Contributing to CERES
 
-Obrigado por considerar contribuir para o CERES! 🎉
+Thank you for your interest in contributing to CERES! This document provides guidelines and information for contributors.
 
-## 📋 Índice
+## 🚀 Getting Started
 
-- [Código de Conduta](#código-de-conduta)
-- [Como Contribuir](#como-contribuir)
-- [Reportando Bugs](#reportando-bugs)
-- [Sugerindo Melhorias](#sugerindo-melhorias)
-- [Desenvolvimento](#desenvolvimento)
-- [Padrões de Código](#padrões-de-código)
-- [Processo de Pull Request](#processo-de-pull-request)
+### Prerequisites
 
-## 🤝 Código de Conduta
+Before contributing, ensure you have:
+- Node.js 18+ and pnpm 8+
+- Python 3.11+ and pip
+- PostgreSQL 13+
+- Redis 6+
+- Git
 
-Este projeto adere ao [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). Ao participar, você deve seguir este código.
+### Development Setup
 
-## 🚀 Como Contribuir
-
-### Tipos de Contribuição
-
-Aceitamos vários tipos de contribuições:
-
-- 🐛 **Correção de bugs**
-- ✨ **Novas funcionalidades**
-- 📖 **Melhorias na documentação**
-- 🧪 **Testes**
-- 🎨 **Melhorias de UI/UX**
-- 🔧 **Refatoração de código**
-- 🌐 **Traduções**
-
-### Antes de Começar
-
-1. Verifique se já existe uma [issue](https://github.com/carlossilvatbh/CERES/issues) relacionada
-2. Se não existir, crie uma nova issue descrevendo o problema ou melhoria
-3. Aguarde feedback da equipe antes de começar o desenvolvimento
-
-## 🐛 Reportando Bugs
-
-### Antes de Reportar
-
-- Verifique se o bug já foi reportado nas [issues existentes](https://github.com/carlossilvatbh/CERES/issues)
-- Teste na versão mais recente do projeto
-- Verifique se o problema persiste em diferentes navegadores/ambientes
-
-### Como Reportar
-
-Use o [template de bug report](.github/ISSUE_TEMPLATE/bug_report.md) e inclua:
-
-- **Descrição clara** do problema
-- **Passos para reproduzir** o bug
-- **Comportamento esperado** vs **comportamento atual**
-- **Screenshots** (se aplicável)
-- **Informações do ambiente**:
-  - OS: [ex: Windows 10, macOS 12.0, Ubuntu 20.04]
-  - Navegador: [ex: Chrome 96, Firefox 95]
-  - Versão do CERES: [ex: 1.0.0]
-
-## ✨ Sugerindo Melhorias
-
-### Antes de Sugerir
-
-- Verifique se a funcionalidade já foi sugerida
-- Considere se a melhoria se alinha com os objetivos do projeto
-- Pense em como a funcionalidade beneficiaria outros usuários
-
-### Como Sugerir
-
-Use o [template de feature request](.github/ISSUE_TEMPLATE/feature_request.md) e inclua:
-
-- **Descrição clara** da funcionalidade
-- **Justificativa** para a melhoria
-- **Casos de uso** específicos
-- **Mockups ou exemplos** (se aplicável)
-
-## 💻 Desenvolvimento
-
-### Configuração do Ambiente
-
-1. **Fork** o repositório
-2. **Clone** seu fork:
-   ```bash
-   git clone https://github.com/SEU-USERNAME/CERES.git
-   cd CERES
-   ```
-
-3. **Configure o upstream**:
-   ```bash
-   git remote add upstream https://github.com/carlossilvatbh/CERES.git
-   ```
-
-4. **Instale as dependências**:
-   ```bash
-   # Backend
-   cd backend
-   python -m venv venv
-   source venv/bin/activate
-   pip install -r requirements.txt
-   pip install -r requirements-dev.txt
-
-   # Frontend
-   cd ../frontend
-   npm install
-   ```
-
-5. **Configure o ambiente**:
-   ```bash
-   cp backend/.env.example backend/.env
-   # Edite o arquivo .env com suas configurações
-   ```
-
-### Workflow de Desenvolvimento
-
-1. **Crie uma branch** para sua feature:
-   ```bash
-   git checkout -b feature/nome-da-feature
-   ```
-
-2. **Faça suas alterações** seguindo os padrões de código
-
-3. **Execute os testes**:
-   ```bash
-   # Backend
-   cd backend
-   python manage.py test
-
-   # Frontend
-   cd frontend
-   npm test
-   ```
-
-4. **Commit suas mudanças**:
-   ```bash
-   git add .
-   git commit -m "feat: adiciona nova funcionalidade X"
-   ```
-
-5. **Push para seu fork**:
-   ```bash
-   git push origin feature/nome-da-feature
-   ```
-
-6. **Abra um Pull Request**
-
-## 📝 Padrões de Código
-
-### Commits
-
-Usamos [Conventional Commits](https://www.conventionalcommits.org/):
-
-- `feat:` nova funcionalidade
-- `fix:` correção de bug
-- `docs:` mudanças na documentação
-- `style:` formatação, ponto e vírgula, etc
-- `refactor:` refatoração de código
-- `test:` adição ou correção de testes
-- `chore:` tarefas de manutenção
-
-**Exemplos:**
-```
-feat: adiciona screening de empresas
-fix: corrige erro de validação no formulário
-docs: atualiza guia de instalação
-```
-
-### Python (Backend)
-
-- Siga o [PEP 8](https://pep8.org/)
-- Use [Black](https://black.readthedocs.io/) para formatação
-- Use [isort](https://isort.readthedocs.io/) para imports
-- Docstrings no formato [Google Style](https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings)
-
-```python
-def process_document(document_path: str) -> Dict[str, Any]:
-    """Processa um documento e extrai informações.
-    
-    Args:
-        document_path: Caminho para o arquivo do documento.
-        
-    Returns:
-        Dicionário com informações extraídas do documento.
-        
-    Raises:
-        DocumentProcessingError: Se o documento não puder ser processado.
-    """
-    pass
-```
-
-### JavaScript/React (Frontend)
-
-- Use [ESLint](https://eslint.org/) e [Prettier](https://prettier.io/)
-- Componentes funcionais com hooks
-- TypeScript quando possível
-- Nomes de componentes em PascalCase
-- Props e variáveis em camelCase
-
-```jsx
-const CustomerForm = ({ onSubmit, initialData }) => {
-  const [formData, setFormData] = useState(initialData || {});
-  
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    onSubmit(formData);
-  };
-  
-  return (
-    <form onSubmit={handleSubmit}>
-      {/* componente */}
-    </form>
-  );
-};
-```
-
-### CSS/Tailwind
-
-- Use classes utilitárias do Tailwind
-- Componentes customizados em `src/components/ui/`
-- Siga o design system BTS
-- Mobile-first approach
-
-## 🔄 Processo de Pull Request
-
-### Checklist
-
-Antes de submeter seu PR, verifique:
-
-- [ ] Código segue os padrões estabelecidos
-- [ ] Testes passam (`npm test` e `python manage.py test`)
-- [ ] Documentação foi atualizada (se necessário)
-- [ ] Commits seguem o padrão Conventional Commits
-- [ ] PR tem descrição clara do que foi alterado
-- [ ] Screenshots incluídas (para mudanças de UI)
-
-### Template de PR
-
-```markdown
-## Descrição
-Breve descrição das mudanças realizadas.
-
-## Tipo de Mudança
-- [ ] Bug fix
-- [ ] Nova funcionalidade
-- [ ] Breaking change
-- [ ] Documentação
-
-## Como Testar
-1. Passo 1
-2. Passo 2
-3. Passo 3
-
-## Screenshots
-(Se aplicável)
-
-## Checklist
-- [ ] Testes passam
-- [ ] Código segue os padrões
-- [ ] Documentação atualizada
-```
-
-### Processo de Review
-
-1. **Automated checks** devem passar
-2. **Code review** por pelo menos 1 maintainer
-3. **Testing** em ambiente de staging
-4. **Approval** e merge
-
-## 🧪 Testes
-
-### Backend (Django)
-
+1. **Fork and Clone**
 ```bash
-# Executar todos os testes
-python manage.py test
-
-# Executar testes específicos
-python manage.py test apps.customer_enrollment.tests
-
-# Com coverage
-coverage run --source='.' manage.py test
-coverage report
+git clone https://github.com/YOUR_USERNAME/CERES.git
+cd CERES
 ```
 
-### Frontend (React)
-
-```bash
-# Executar todos os testes
-npm test
-
-# Executar testes específicos
-npm test -- --testNamePattern="CustomerForm"
-
-# Com coverage
-npm test -- --coverage
-```
-
-## 📖 Documentação
-
-### Atualizando Docs
-
-- Documentação da API: `docs/api-documentation.md`
-- Manual do usuário: `docs/user-manual.md`
-- Guias técnicos: `docs/`
-
-### Gerando Docs da API
-
+2. **Setup Backend**
 ```bash
 cd backend
-python manage.py generate_api_docs
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements-dev.txt
+python manage.py migrate
+python manage.py createsuperuser
 ```
 
-## 🌐 Traduções
+3. **Setup Frontend**
+```bash
+cd frontend
+pnpm install
+```
 
-Aceitamos traduções para outros idiomas:
+4. **Start Development Servers**
+```bash
+# Terminal 1: Backend
+cd backend && python manage.py runserver
 
-1. Copie `frontend/src/locales/pt-BR.json`
-2. Traduza as strings
-3. Adicione o novo idioma em `frontend/src/i18n/index.js`
-4. Teste a tradução
-5. Submeta um PR
+# Terminal 2: Frontend  
+cd frontend && pnpm dev
 
-## 🆘 Precisa de Ajuda?
+# Terminal 3: Celery (optional)
+cd backend && celery -A ceres_project worker -l info
+```
 
-- 💬 [Discussões no GitHub](https://github.com/carlossilvatbh/CERES/discussions)
-- 📧 Email: dev@ceres-system.com
-- 📖 [Documentação](docs/)
+## 📋 Development Guidelines
 
-## 🙏 Reconhecimento
+### Code Style
 
-Todos os contribuidores serão reconhecidos no arquivo [CONTRIBUTORS.md](CONTRIBUTORS.md) e nos releases do projeto.
+**Python (Backend)**
+- Follow PEP 8
+- Use Black for formatting: `black .`
+- Use isort for imports: `isort .`
+- Use flake8 for linting: `flake8 .`
+- Type hints are encouraged
+
+**TypeScript (Frontend)**
+- Follow ESLint configuration
+- Use Prettier for formatting: `pnpm format`
+- Use TypeScript strict mode
+- Prefer functional components with hooks
+
+### Commit Messages
+
+Use conventional commit format:
+```
+type(scope): description
+
+[optional body]
+
+[optional footer]
+```
+
+Types:
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `style`: Code style changes
+- `refactor`: Code refactoring
+- `test`: Adding or updating tests
+- `chore`: Maintenance tasks
+
+Examples:
+```
+feat(auth): add JWT token refresh mechanism
+fix(screening): resolve timeout issue in batch processing
+docs(api): update authentication endpoints documentation
+```
+
+### Branch Naming
+
+- `feature/description` - New features
+- `fix/description` - Bug fixes
+- `docs/description` - Documentation updates
+- `refactor/description` - Code refactoring
+- `test/description` - Test improvements
+
+## 🧪 Testing
+
+### Running Tests
+
+**Backend Tests**
+```bash
+cd backend
+pytest                    # Run all tests
+pytest -m unit           # Unit tests only
+pytest -m integration    # Integration tests only
+pytest --cov=.           # With coverage
+```
+
+**Frontend Tests**
+```bash
+cd frontend
+pnpm test                # Run all tests
+pnpm test:coverage       # With coverage
+pnpm test:ui             # Interactive UI
+```
+
+### Writing Tests
+
+**Backend Test Structure**
+```python
+# tests/unit/test_models.py
+import pytest
+from sanctions_screening.models import Customer
+
+@pytest.mark.unit
+def test_customer_creation():
+    customer = Customer.objects.create(
+        name="Test Customer",
+        email="test@example.com"
+    )
+    assert customer.name == "Test Customer"
+```
+
+**Frontend Test Structure**
+```typescript
+// src/components/__tests__/Button.test.tsx
+import { render, screen } from '@testing-library/react'
+import { Button } from '../Button'
+
+describe('Button', () => {
+  it('renders with correct text', () => {
+    render(<Button>Click me</Button>)
+    expect(screen.getByText('Click me')).toBeInTheDocument()
+  })
+})
+```
+
+## 📝 Documentation
+
+### API Documentation
+
+- Update OpenAPI schemas for new endpoints
+- Include request/response examples
+- Document error responses
+- Add authentication requirements
+
+### Code Documentation
+
+**Python Docstrings**
+```python
+def screen_customer(customer_id: int, sources: List[str]) -> Dict[str, Any]:
+    """
+    Screen a customer against sanctions lists.
+    
+    Args:
+        customer_id: ID of the customer to screen
+        sources: List of screening sources to check
+        
+    Returns:
+        Dict containing screening results and metadata
+        
+    Raises:
+        CustomerNotFound: If customer doesn't exist
+        ScreeningError: If screening process fails
+    """
+```
+
+**TypeScript JSDoc**
+```typescript
+/**
+ * Validates customer data before submission
+ * @param data - Customer data to validate
+ * @returns Validation result with errors if any
+ */
+export function validateCustomerData(data: CustomerData): ValidationResult {
+  // Implementation
+}
+```
+
+## 🔄 Pull Request Process
+
+### Before Submitting
+
+1. **Update your branch**
+```bash
+git checkout main
+git pull origin main
+git checkout your-feature-branch
+git rebase main
+```
+
+2. **Run tests**
+```bash
+# Backend
+cd backend && pytest
+
+# Frontend
+cd frontend && pnpm test
+```
+
+3. **Check code quality**
+```bash
+# Backend
+cd backend && black . && isort . && flake8 .
+
+# Frontend
+cd frontend && pnpm lint && pnpm type-check
+```
+
+### PR Requirements
+
+- [ ] Tests pass locally
+- [ ] Code follows style guidelines
+- [ ] Documentation updated if needed
+- [ ] Commit messages follow convention
+- [ ] PR description explains changes
+- [ ] Breaking changes documented
+
+### PR Template
+
+```markdown
+## Description
+Brief description of changes
+
+## Type of Change
+- [ ] Bug fix
+- [ ] New feature
+- [ ] Breaking change
+- [ ] Documentation update
+
+## Testing
+- [ ] Unit tests added/updated
+- [ ] Integration tests added/updated
+- [ ] Manual testing completed
+
+## Checklist
+- [ ] Code follows style guidelines
+- [ ] Self-review completed
+- [ ] Documentation updated
+- [ ] Tests pass
+```
+
+## 🐛 Bug Reports
+
+### Before Reporting
+
+1. Check existing issues
+2. Reproduce the bug
+3. Test on latest version
+4. Gather system information
+
+### Bug Report Template
+
+```markdown
+**Bug Description**
+Clear description of the bug
+
+**Steps to Reproduce**
+1. Go to '...'
+2. Click on '...'
+3. See error
+
+**Expected Behavior**
+What should happen
+
+**Actual Behavior**
+What actually happens
+
+**Environment**
+- OS: [e.g., Ubuntu 20.04]
+- Browser: [e.g., Chrome 91]
+- CERES Version: [e.g., 2.0.0]
+
+**Additional Context**
+Screenshots, logs, etc.
+```
+
+## 💡 Feature Requests
+
+### Feature Request Template
+
+```markdown
+**Feature Description**
+Clear description of the feature
+
+**Problem Statement**
+What problem does this solve?
+
+**Proposed Solution**
+How should this work?
+
+**Alternatives Considered**
+Other solutions you've considered
+
+**Additional Context**
+Mockups, examples, etc.
+```
+
+## 🏗️ Architecture Guidelines
+
+### Backend Architecture
+
+- Follow Django best practices
+- Use Django REST Framework for APIs
+- Implement proper error handling
+- Use Celery for background tasks
+- Follow repository pattern for data access
+
+### Frontend Architecture
+
+- Use React functional components
+- Implement proper error boundaries
+- Use React Query for server state
+- Follow atomic design principles
+- Implement proper loading states
+
+### Database Guidelines
+
+- Use migrations for schema changes
+- Index frequently queried fields
+- Use foreign keys for relationships
+- Implement soft deletes where appropriate
+- Document complex queries
+
+## 🔒 Security Guidelines
+
+### Security Checklist
+
+- [ ] Input validation implemented
+- [ ] SQL injection prevention
+- [ ] XSS protection
+- [ ] CSRF protection
+- [ ] Authentication required
+- [ ] Authorization checked
+- [ ] Sensitive data encrypted
+- [ ] Audit logging implemented
+
+### Security Review Process
+
+1. Code review by security-aware developer
+2. Automated security scanning
+3. Manual security testing
+4. Documentation review
+
+## 📊 Performance Guidelines
+
+### Performance Checklist
+
+- [ ] Database queries optimized
+- [ ] Proper indexing implemented
+- [ ] Caching strategy applied
+- [ ] Bundle size optimized
+- [ ] Images optimized
+- [ ] API responses paginated
+- [ ] Background tasks used for heavy operations
+
+### Performance Testing
+
+- Load testing for APIs
+- Frontend performance audits
+- Database query analysis
+- Memory usage monitoring
+
+## 🤝 Community Guidelines
+
+### Code of Conduct
+
+- Be respectful and inclusive
+- Provide constructive feedback
+- Help others learn and grow
+- Follow project guidelines
+- Report inappropriate behavior
+
+### Communication Channels
+
+- **Issues**: Bug reports and feature requests
+- **Discussions**: Questions and general discussion
+- **Pull Requests**: Code contributions
+- **Email**: security@ceres-system.com (security issues)
+
+## 📚 Resources
+
+### Learning Resources
+
+- [Django Documentation](https://docs.djangoproject.com/)
+- [React Documentation](https://react.dev/)
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
+
+### Tools and Extensions
+
+**VS Code Extensions**
+- Python
+- Pylance
+- ES7+ React/Redux/React-Native snippets
+- Prettier
+- ESLint
+- GitLens
+
+**Browser Extensions**
+- React Developer Tools
+- Redux DevTools
+
+## 🎯 Roadmap Participation
+
+### How to Contribute to Roadmap
+
+1. Review current roadmap in README
+2. Discuss ideas in GitHub Discussions
+3. Create detailed feature proposals
+4. Participate in planning discussions
+5. Volunteer for implementation
+
+### Priority Areas
+
+- Performance optimization
+- Security enhancements
+- User experience improvements
+- API enhancements
+- Documentation improvements
 
 ---
 
-**Obrigado por contribuir para o CERES! 🚀**
-
+Thank you for contributing to CERES! Your contributions help make compliance and risk management more accessible and effective for organizations worldwide.
