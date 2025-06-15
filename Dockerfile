@@ -30,9 +30,9 @@ COPY backend/ /app/
 # Create necessary directories
 RUN mkdir -p /app/staticfiles /app/media
 
-# Expose port
-EXPOSE 8000
+# Expose port (Railway will set PORT environment variable)
+EXPOSE $PORT
 
-# Run gunicorn
-CMD ["gunicorn", "ceres_project.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "2", "--timeout", "30"]
+# Run gunicorn with Railway's PORT variable
+CMD gunicorn ceres_project.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 30
 

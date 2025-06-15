@@ -10,12 +10,15 @@ DEBUG = False
 
 # Production hosts - Railway and custom domains
 ALLOWED_HOSTS = [
-    'ceres-62f4.onrender.com',
+    'ceres-production-3950.up.railway.app',
+    'ceres-production-8d0c.up.railway.app',
     'ceres-system.com',
     'www.ceres-system.com',
     'staging.ceres-system.com',
     '.railway.app',
+    '.up.railway.app',
     '.onrender.com',
+    '*',  # Temporary for debugging
 ]
 
 # Database for production - PostgreSQL required
@@ -90,7 +93,7 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@ceres-system.com')
 
-# Production logging with file output
+# Production logging - console only for Railway
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -110,25 +113,19 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'logs' / 'ceres.log',
-            'formatter': 'verbose',
-        },
     },
     'root': {
-        'handlers': ['console', 'file'],
+        'handlers': ['console'],
         'level': 'INFO',
     },
     'loggers': {
         'django': {
-            'handlers': ['console', 'file'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },
         'ceres': {
-            'handlers': ['console', 'file'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },
